@@ -119,10 +119,22 @@ Stream to multiple AirPlay 2 targets simultaneously.
 
 ---
 
-## watchOS Companion
+## watchOS Companion ✅ Done
 
-Now Playing controls and recently played list on Apple Watch.
+Now Playing controls on Apple Watch, communicating with the iPhone app via WatchConnectivity.
+
+### What was built
+
+| Area | Detail |
+|---|---|
+| Phone service | `WatchConnectivityService` (MainActor singleton) — activates `WCSession`, observes `PlaybackService.shared.$state`, sends state snapshots via `updateApplicationContext`, routes commands back to `PlaybackService` |
+| State sync | `PlayerState` fields (status, position, duration, title, artist, album) + JPEG artwork thumbnail (100×100, only sent on track change) sent as the WC application context |
+| Watch app | `LoudmouthWatch/` target — `LoudmouthWatchApp` (`@main` SwiftUI App), `PhoneConnectivityService`, `NowPlayingView` |
+| Watch UI | Artwork (with `UIImage(data:)` fallback to music note icon), track title + artist, linear progress bar, previous / play-pause / next transport buttons |
+| Commands | Watch buttons call `PhoneConnectivityService.sendCommand(_:)` → `WCSession.sendMessage` → phone routes to `PlaybackService` |
+| project.yml | `LoudmouthWatch` watchOS 10 target added; `LoudmouthWatch` embedded as a dependency of `Loudmouth` |
 
 ### Notes
-- Share state via `WatchConnectivity` (`WCSession`)
-- Use `WKAudioFilePlayer` or remote commands only (watch cannot decode arbitrary formats)
+- The iOS `BUILD SUCCEEDED` — the watch target compiles but requires the watchOS 26.5 simulator runtime to run (install via Xcode → Settings → Components → Platforms)
+- Test with Xcode's paired simulator: run the iOS app on the iPhone 17 Pro simulator, then in Xcode menu I/O → External Displays → Apple Watch
+- Position is refreshed on the watch from the debounced (1 s) context update; the watch does not do its own timer

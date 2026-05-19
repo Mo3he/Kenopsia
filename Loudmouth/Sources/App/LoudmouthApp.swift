@@ -1,4 +1,5 @@
 import SwiftUI
+import WatchConnectivity
 
 @main
 struct LoudmouthApp: App {
@@ -21,6 +22,7 @@ struct LoudmouthApp: App {
                         .environmentObject(sources)
                         .interactiveDismissDisabled()
                 }
+                .task { WatchConnectivityService.shared.activate() }
         }
     }
 }
