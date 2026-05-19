@@ -1,6 +1,7 @@
 import AVFoundation
 import CoreMedia
 import MediaPlayer
+import MusicKit
 import Combine
 
 private extension Double {
@@ -18,6 +19,8 @@ private extension Double {
 ///   • Remote URLs  → AVPlayer     (HTTP streaming, HLS, Icecast)
 @MainActor
 final class PlaybackService: ObservableObject {
+    // MARK: - Shared instance (used by CarPlay and the SwiftUI layer)
+    static let shared = PlaybackService()
     // MARK: - Published state
     @Published private(set) var state = PlayerState()
     @Published private(set) var queue = Queue()
@@ -38,6 +41,11 @@ final class PlaybackService: ObservableObject {
     private var streamStatusObservation: NSKeyValueObservation?
     private var streamTimeObservation: Any?
     private var streamEndObserver: (any NSObjectProtocol)?   // stored token for AVPlayerItemDidPlayToEndTime
+
+    // MARK: - Apple Music player
+    private let musicPlayer = ApplicationMusicPlayer.shared
+    private var musicPlayerSubscription: AnyCancellable?
+    private var currentPathIsAppleMusic = false
 
     // MARK: - Internal
     private var positionTimer: Timer?
@@ -81,7 +89,9 @@ final class PlaybackService: ObservableObject {
     }
 
     func pause() {
-        if currentPathIsStream {
+        if currentPathIsAppleMusic {
+            musicPlayer.pause()
+        } else if currentPathIsStream {
             streamPlayer.pause()
         } else {
             engine.activePlayer.pause()
@@ -113,7 +123,10 @@ final class PlaybackService: ObservableObject {
     }
 
     func seek(to seconds: Double) {
-        if currentPathIsStream {
+        if currentPathIsAppleMusic {
+            musicPlayer.playbackTime = seconds
+            state.positionSeconds = seconds
+        } else if currentPathIsStream {
             streamPlayer.seek(to: CMTime(seconds: seconds, preferredTimescale: 1000))
             state.positionSeconds = seconds
         } else {
@@ -168,31 +181,54 @@ final class PlaybackService: ObservableObject {
     // MARK: - Private helpers
     private func resolveAndPlay(track: Track, startAt seconds: Double = 0) async {
         state.status = .buffering
+
+        // ── Apple Music path (MusicKit / ApplicationMusicPlayer) ──────────────
+        if case .appleMusicID(let id) = track.uri {
+            await playWithMusicPlayer(track: track, musicItemID: MusicItemID(rawValue: id), startAt: seconds)
+            return
+        }
+
         do {
             let url = try await sourceResolver.localURL(for: track)
             let replayGain = replayGain(for: track)
 
             if url.isFileURL {
                 // ── Local file path: AVAudioEngine (gapless, EQ) ──────────────────
+                // Falls back to AVPlayer if the engine can't start (e.g. simulator audio HAL issues).
                 currentPathIsStream = false
                 stopStreamPlayer()
-                let file = try AVAudioFile(forReading: url)
-                try engine.play(file: file, replayGainDB: replayGain)
-                if seconds > 0 {
-                    // Seek by restarting with a sample-offset — engine handles this
-                    let sampleRate = file.processingFormat.sampleRate
-                    let startSample = AVAudioFramePosition(seconds * sampleRate)
-                    engine.activePlayer.stop()
-                    await engine.activePlayer.scheduleSegment(file,
-                        startingFrame: startSample,
-                        frameCount: AVAudioFrameCount(file.length - startSample),
-                        at: nil)
-                    engine.activePlayer.play()
+                stopMusicPlayer()
+                var usedEngine = false
+                if let file = try? AVAudioFile(forReading: url),
+                   (try? engine.play(file: file, replayGainDB: replayGain)) != nil {
+                    usedEngine = true
+                    if seconds > 0 {
+                        let sampleRate = file.processingFormat.sampleRate
+                        let startSample = AVAudioFramePosition(seconds * sampleRate)
+                        engine.activePlayer.stop()
+                        await engine.activePlayer.scheduleSegment(file,
+                            startingFrame: startSample,
+                            frameCount: AVAudioFrameCount(file.length - startSample),
+                            at: nil)
+                        engine.activePlayer.play()
+                    }
+                }
+                if !usedEngine {
+                    // AVAudioEngine unavailable — fall back to AVPlayer for this track
+                    currentPathIsStream = true
+                    let item = AVPlayerItem(url: url)
+                    streamPlayer.replaceCurrentItem(with: item)
+                    if seconds > 0 {
+                        await streamPlayer.seek(to: CMTime(seconds: seconds, preferredTimescale: 1000))
+                    }
+                    streamPlayer.play()
+                    observeStreamPlayer(track: track)
                 }
             } else {
                 // ── Remote URL: AVPlayer (HTTP, HLS, Icecast, Subsonic stream) ─────
                 currentPathIsStream = true
-                engine.stop()
+                stopMusicPlayer()
+                engine.stopPlayers()   // keep the engine graph alive; only stop the player nodes
                 let item = AVPlayerItem(url: url)
                 streamPlayer.replaceCurrentItem(with: item)
                 if seconds > 0 {
@@ -265,6 +301,60 @@ final class PlaybackService: ObservableObject {
         streamEndObserver = nil
     }
 
+    // MARK: - Apple Music playback
+
+    private func stopMusicPlayer() {
+        guard currentPathIsAppleMusic else { return }
+        musicPlayer.stop()
+        musicPlayerSubscription?.cancel()
+        musicPlayerSubscription = nil
+        currentPathIsAppleMusic = false
+    }
+
+    private func playWithMusicPlayer(track: Track, musicItemID: MusicItemID, startAt seconds: Double) async {
+        stopStreamPlayer()
+        engine.stopPlayers()
+        currentPathIsStream = false
+        currentPathIsAppleMusic = true
+
+        do {
+            guard let song = try await AppleMusicService.song(for: musicItemID) else {
+                state.status = .stopped; return
+            }
+            musicPlayer.queue = [song]
+            if seconds > 0 { musicPlayer.playbackTime = seconds }
+            try await musicPlayer.play()
+            // Cache artwork while we have the Song object.
+            let artKey = "applemusic:\(musicItemID.rawValue)"
+            Task { await AppleMusicService.cacheArtwork(for: song, key: artKey) }
+        } catch {
+            state.status = .stopped; return
+        }
+
+        state.status = .playing
+        state.currentTrackID = track.id
+        state.durationSeconds = track.durationSeconds
+        state.positionSeconds = seconds
+        state.nowPlayingTitle = track.title
+        state.nowPlayingArtist = track.artist
+        state.nowPlayingAlbum = track.album
+        updateNowPlayingInfo(track: track)
+        startPositionTimer()
+
+        // Observe MusicPlayer state so we can sync pause/stop changes back to PlaybackState.
+        musicPlayerSubscription = musicPlayer.state.objectWillChange
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                guard let self, self.currentPathIsAppleMusic else { return }
+                switch self.musicPlayer.state.playbackStatus {
+                case .playing:  self.state.status = .playing
+                case .paused:   self.state.status = .paused
+                case .stopped, .interrupted: self.state.status = .stopped
+                default: break
+                }
+            }
+    }
+
     private func preScheduleNext(_ track: Track) async {
         guard let url = try? await sourceResolver.localURL(for: track),
               let file = try? AVAudioFile(forReading: url) else { return }
@@ -272,7 +362,9 @@ final class PlaybackService: ObservableObject {
     }
 
     private func resumePlayback() {
-        if currentPathIsStream {
+        if currentPathIsAppleMusic {
+            Task { try? await musicPlayer.play() }
+        } else if currentPathIsStream {
             streamPlayer.play()
         } else {
             engine.activePlayer.play()

@@ -38,6 +38,8 @@ targets:
         SUPPORTS_MACCATALYST: "YES"
         # Background audio is required for music playback
         INFOPLIST_KEY_UIBackgroundModes: audio
+    linkedFrameworks:
+      - CarPlay
     entitlements:
       path: Loudmouth/Loudmouth.entitlements
       properties:

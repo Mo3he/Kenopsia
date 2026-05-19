@@ -4,7 +4,7 @@ A powerful, source-agnostic music player for iPhone and iPad.
 
 ## Features
 
-- Play music from local files, iCloud Drive, Subsonic/Navidrome servers, NAS/DLNA, Backblaze B2, Dropbox, Google Drive, and OneDrive
+- Play music from local files, iCloud Drive, Subsonic/Navidrome servers, NAS/DLNA, and Backblaze B2
 - Gapless playback with crossfade
 - 10-band parametric EQ with custom presets
 - Synced lyrics via LRC files or LRCLIB

@@ -2,14 +2,11 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <!-- iCloud KV sync for settings and source list -->
-    <key>com.apple.developer.ubiquity-kvstore-identifier</key>
-    <string>$(TeamIdentifierPrefix)net.mohome.loudmouth</string>
-
-    <!-- Shared App Group container — used by main app + widget -->
-    <key>com.apple.security.application-groups</key>
-    <array>
-        <string>group.net.mohome.loudmouth</string>
-    </array>
+	<key>com.apple.developer.ubiquity-kvstore-identifier</key>
+	<string>$(TeamIdentifierPrefix)net.mohome.loudmouth</string>
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>group.net.mohome.loudmouth</string>
+	</array>
 </dict>
 </plist>

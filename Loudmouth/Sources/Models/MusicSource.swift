@@ -38,8 +38,9 @@ enum MusicSourceKind: String, Codable, CaseIterable {
     case nas            // DLNA / UPnP / SMB
     case subsonic       // Subsonic / Navidrome API
     case webRadio       // SHOUTcast, Icecast, raw stream URL
-    case cloud          // Dropbox, Google Drive, OneDrive, iCloud, Backblaze
+    case cloud          // iCloud Drive, Backblaze B2
     case wifiTransfer   // built-in HTTP server for drag-and-drop uploads
+    case appleMusic     // MusicKit: user library + Apple Music catalogue
 
     var displayName: String {
         switch self {
@@ -49,6 +50,7 @@ enum MusicSourceKind: String, Codable, CaseIterable {
         case .webRadio:     "Web Radio"
         case .cloud:        "Cloud Drive"
         case .wifiTransfer: "Wi-Fi Transfer"
+        case .appleMusic:   "Apple Music"
         }
     }
 
@@ -60,6 +62,7 @@ enum MusicSourceKind: String, Codable, CaseIterable {
         case .webRadio:     "radio"
         case .cloud:        "icloud"
         case .wifiTransfer: "wifi"
+        case .appleMusic:   "music.note"
         }
     }
 }
@@ -74,6 +77,7 @@ enum MusicSourceConfig: Codable, Equatable {
     case webRadio(WebRadioSourceConfig)
     case cloud(CloudSourceConfig)
     case wifiTransfer(WiFiTransferConfig)
+    case appleMusic(AppleMusicSourceConfig)
 }
 
 // MARK: - Per-source config types
@@ -125,4 +129,11 @@ struct WiFiTransferConfig: Codable, Equatable {
     var port: Int = 8383
     var requiresPassword: Bool = false
     var keychainKey: String = ""    // optional upload password in Keychain
+}
+
+struct AppleMusicSourceConfig: Codable, Equatable {
+    /// Whether the user has granted MusicKit authorisation.
+    var isAuthorised: Bool = false
+    /// Number of songs last fetched from the library (for the UI badge).
+    var lastFetchedCount: Int = 0
 }

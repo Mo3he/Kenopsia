@@ -11,8 +11,13 @@ final class SourceViewModel: ObservableObject {
     @Published var wifiTransferActive = false
     @Published private(set) var wifiTransferURL: String?
 
+    // Keeps security-scoped folder URLs alive so AVAudioFile can open files
+    // in user-selected local folders throughout the app's lifetime.
+    private var localScopeURLs: [MusicSourceID: URL] = [:]
+
     private let resolver: SourceResolver
     private var wifiService: WiFiTransferService?
+    private var wifiUploadObserver: NSObjectProtocol?
     private let defaults = UserDefaults(suiteName: "group.net.mohome.loudmouth")
 
     // Weak ref to library for scanning — injected after init to avoid circular dependency
@@ -27,6 +32,7 @@ final class SourceViewModel: ObservableObject {
     func add(source: MusicSource) {
         sources.append(source)
         registerAdapter(for: source)
+        activateSecurityScope(for: source)
         save()
         // Auto-scan immediately if enabled
         if source.isEnabled { scan(source: source) }
@@ -40,6 +46,11 @@ final class SourceViewModel: ObservableObject {
     }
 
     func delete(sourceID: MusicSourceID) {
+        if let source = sources.first(where: { $0.id == sourceID }),
+           let url = localScopeURLs.removeValue(forKey: sourceID) {
+            _ = source  // suppress unused warning
+            url.stopAccessingSecurityScopedResource()
+        }
         sources.removeAll { $0.id == sourceID }
         save()
     }
@@ -67,10 +78,13 @@ final class SourceViewModel: ObservableObject {
                         relativeTo: nil,
                         bookmarkDataIsStale: &stale
                     )
-                    _ = url.startAccessingSecurityScopedResource()
-                    defer { url.stopAccessingSecurityScopedResource() }
+                    if localScopeURLs[source.id] == nil {
+                        _ = url.startAccessingSecurityScopedResource()
+                        localScopeURLs[source.id] = url
+                    }
+                    let scopeURL = localScopeURLs[source.id] ?? url
                     let scanner = LibraryScanner(store: LibraryStore.shared)
-                    tracks = await scanner.scan(source: source, urls: [url])
+                    tracks = await scanner.scan(source: source, urls: [scopeURL])
 
                 case .subsonic:
                     guard let adapter = await resolver.adapter(for: source.id) as? SubsonicSourceAdapter else {
@@ -114,6 +128,14 @@ final class SourceViewModel: ObservableObject {
                     tracks = try await adapter.fetchTracks()
                     LibraryStore.shared.merge(tracks: tracks, from: source.id)
 
+                case .appleMusic:
+                    guard let adapter = await resolver.adapter(for: source.id) as? AppleMusicService else {
+                        completion?("Adapter not registered — try removing and re-adding this source")
+                        return
+                    }
+                    tracks = try await adapter.fetchTracks()
+                    LibraryStore.shared.merge(tracks: tracks, from: source.id)
+
                 default:
                     completion?("This source type does not support scanning")
                     return
@@ -144,12 +166,21 @@ final class SourceViewModel: ObservableObject {
             wifiTransferURL = "http://\(localIPAddress() ?? "device"):8383"
         }
         // Observe uploads so we auto-scan newly received files into the library.
-        NotificationCenter.default.addObserver(
+        // Remove any existing observer first to avoid stacking duplicates on restart.
+        if let existing = wifiUploadObserver {
+            NotificationCenter.default.removeObserver(existing)
+        }
+        // The notification is always posted on the main thread (see SimpleHTTPServer),
+        // so MainActor.assumeIsolated is safe here.
+        wifiUploadObserver = NotificationCenter.default.addObserver(
             forName: .wifiTransferDidReceiveFiles, object: nil, queue: .main
         ) { [weak self] notification in
-            guard let self, let folder = notification.object as? URL else { return }
-            guard let wifiSource = self.sources.first(where: { $0.kind == .wifiTransfer }) else { return }
-            self.libraryViewModel?.scanFolder(folder, for: wifiSource)
+            guard let folder = notification.object as? URL else { return }
+            MainActor.assumeIsolated { [weak self] in
+                guard let self else { return }
+                guard let wifiSource = self.sources.first(where: { $0.kind == .wifiTransfer }) else { return }
+                self.libraryViewModel?.scanFolder(folder, for: wifiSource)
+            }
         }
     }
 
@@ -157,6 +188,33 @@ final class SourceViewModel: ObservableObject {
         guard let svc = wifiService else { return }
         Task { await svc.stop(); wifiTransferActive = false; wifiTransferURL = nil }
         wifiService = nil
+    }
+
+    // MARK: - Apple Music
+    /// Requests MusicKit authorisation and imports the user's library into the store.
+    func connectAppleMusic(source: MusicSource) async {
+        let authorised = await AppleMusicService.requestAuthorisation()
+        guard authorised else { return }
+
+        // Update the source config to mark it as authorised.
+        guard let idx = sources.firstIndex(where: { $0.id == source.id }) else { return }
+        if case .appleMusic(var cfg) = sources[idx].config {
+            cfg.isAuthorised = true
+            sources[idx].config = .appleMusic(cfg)
+            save()
+        }
+
+        // Scan the library — reuse the existing scan pipeline.
+        scan(source: sources[idx]) { [weak self] result in
+            guard let self else { return }
+            if let idx = self.sources.firstIndex(where: { $0.id == source.id }),
+               case .appleMusic(var cfg) = self.sources[idx].config,
+               let count = Int(result.components(separatedBy: " ").first ?? "") {
+                cfg.lastFetchedCount = count
+                self.sources[idx].config = .appleMusic(cfg)
+                self.save()
+            }
+        }
     }
 
     // MARK: - Adapters
@@ -170,6 +228,9 @@ final class SourceViewModel: ObservableObject {
             Task { await resolver.register(adapter: adapter, for: source.id) }
         case .cloud(let config):
             let adapter = CloudSourceAdapter(sourceID: source.id, config: config)
+            Task { await resolver.register(adapter: adapter, for: source.id) }
+        case .appleMusic(let config):
+            let adapter = AppleMusicService(sourceID: source.id, config: config)
             Task { await resolver.register(adapter: adapter, for: source.id) }
         default:
             break
@@ -199,6 +260,24 @@ final class SourceViewModel: ObservableObject {
             save()
         }
         sources.forEach { registerAdapter(for: $0) }
+        // Re-activate security scopes for all local sources so files are accessible
+        // immediately on launch (not only after the user triggers a scan).
+        sources.filter { $0.kind == .local }.forEach { activateSecurityScope(for: $0) }
+    }
+
+    private func activateSecurityScope(for source: MusicSource) {
+        guard case .local(let cfg) = source.config,
+              let bookmark = cfg.bookmarkData,
+              localScopeURLs[source.id] == nil else { return }
+        var stale = false
+        guard let url = try? URL(
+            resolvingBookmarkData: bookmark,
+            options: .withoutUI,
+            relativeTo: nil,
+            bookmarkDataIsStale: &stale
+        ) else { return }
+        _ = url.startAccessingSecurityScopedResource()
+        localScopeURLs[source.id] = url
     }
 
     // MARK: - Helpers

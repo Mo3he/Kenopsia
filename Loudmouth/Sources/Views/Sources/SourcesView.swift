@@ -1,6 +1,5 @@
 import SwiftUI
 import CryptoKit
-import AuthenticationServices
 
 // MARK: - SourcesView
 struct SourcesView: View {
@@ -110,7 +109,7 @@ struct SourceDetailView: View {
                 Toggle("Pin for Offline", isOn: $source.isPinnedOffline)
             }
             configSection
-            if source.kind != .wifiTransfer {
+            if source.kind != .wifiTransfer && source.kind != .appleMusic {
                 Section {
                     Button {
                         isScanningNow = true
@@ -224,26 +223,13 @@ struct SourceDetailView: View {
                         Text(cfg.keychainKey.isEmpty ? "Not set" : "••••••••")
                             .foregroundStyle(cfg.keychainKey.isEmpty ? .red : .primary)
                     }
-                } else {
-                    Button("Connect to \(cfg.provider.displayName)") {
-                        Task {
-                            guard let authURL = CloudOAuth.authorizationURL(for: cfg.provider) else { return }
-                            guard let callbackURL = try? await ASWebAuthenticationSession.startSession(
-                                url: authURL, callbackURLScheme: CloudOAuth.redirectScheme
-                            ) else { return }
-                            guard let token = try? await CloudOAuth.exchangeCode(from: callbackURL, provider: cfg.provider) else { return }
-                            let key = "oauth_\(cfg.provider.rawValue)_\(UUID().uuidString)"
-                            try? KeychainHelper.shared.save(key: key, value: token)
-                            guard case .cloud(var c) = source.config else { return }
-                            c.keychainKey = key; c.accountID = cfg.provider.displayName; c.isConnected = true
-                            source.config = .cloud(c)
-                            sources.update(source: source)
-                        }
-                    }
                 }
             }
         case .wifiTransfer:
             EmptyView()
+
+        case .appleMusic:
+            AppleMusicDetailSection(source: source)
         }
     }
 
@@ -356,7 +342,7 @@ struct SourceTypePickerView: View {
         .init(kind: .nas,      headline: "NAS / DLNA Server",      detail: "Stream from a home server or network drive"),
         .init(kind: .subsonic, headline: "Subsonic / Navidrome",   detail: "Self-hosted music server with API access"),
         .init(kind: .webRadio, headline: "Web Radio",              detail: "Internet radio via stream URL"),
-        .init(kind: .cloud,    headline: "Cloud Drive",            detail: "Dropbox, Google Drive, OneDrive and more"),
+        .init(kind: .cloud,    headline: "Cloud Drive",            detail: "iCloud Drive and Backblaze B2"),
     ]
 
     var body: some View {
@@ -416,8 +402,6 @@ struct AddSourceConfigView: View {
     @State private var cloudProvider: CloudProvider = .iCloud
     @State private var b2AccountID = ""
     @State private var b2AppKey = ""
-    @State private var oauthConnected = false
-    @State private var oauthAccountName = ""
 
     // Connection test
     enum ConnectionStatus { case idle, testing, success(String), failure(String) }
@@ -517,12 +501,7 @@ struct AddSourceConfigView: View {
                 Picker("Service", selection: $cloudProvider) {
                     Text("iCloud Drive").tag(CloudProvider.iCloud)
                     Text("Backblaze B2").tag(CloudProvider.backblaze)
-                    Text("Dropbox").tag(CloudProvider.dropbox)
-                    Text("Google Drive").tag(CloudProvider.googleDrive)
-                    Text("OneDrive").tag(CloudProvider.oneDrive)
                 }
-                .pickerStyle(.menu)
-                .onChange(of: cloudProvider) { _, _ in oauthConnected = false; oauthAccountName = "" }
             }
             if cloudProvider == .iCloud {
                 Section {
@@ -540,32 +519,16 @@ struct AddSourceConfigView: View {
                     Text("Find your Key ID and Application Key in the Backblaze B2 console under App Keys.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
-            } else {
-                Section {
-                    if oauthConnected {
-                        Label(oauthAccountName.isEmpty
-                              ? "Connected to \(cloudProvider.displayName)"
-                              : oauthAccountName,
-                              systemImage: "checkmark.circle.fill")
-                            .foregroundStyle(.green)
-                        Button("Sign Out", role: .destructive) {
-                            oauthConnected = false; oauthAccountName = ""
-                            connectionStatus = .idle
-                        }
-                    } else {
-                        Button("Connect to \(cloudProvider.displayName)") {
-                            Task { await connectOAuth(provider: cloudProvider) }
-                        }
-                    }
-                    if case .failure(let msg) = connectionStatus {
-                        Label(msg, systemImage: "xmark.circle.fill")
-                            .foregroundStyle(.red).font(.caption)
-                    }
-                }
             }
 
         case .wifiTransfer:
             EmptyView()
+
+        case .appleMusic:
+            Section {
+                Label("Loudmouth will request access to your Apple Music library when you tap Add.", systemImage: "music.note")
+                    .font(.subheadline).foregroundStyle(.secondary)
+            }
         }
     }
 
@@ -606,12 +569,11 @@ struct AddSourceConfigView: View {
         case .local:        return localBookmark != nil
         case .subsonic:     return !subURL.isEmpty && !subUsername.isEmpty && !subPassword.isEmpty
         case .nas:          return !nasHost.isEmpty
-        case .webRadio, .wifiTransfer: return true
+        case .webRadio, .wifiTransfer, .appleMusic: return true
         case .cloud:
             switch cloudProvider {
             case .iCloud:    return true
             case .backblaze: return !b2AccountID.isEmpty && !b2AppKey.isEmpty
-            default:         return oauthConnected
             }
         }
     }
@@ -646,20 +608,19 @@ struct AddSourceConfigView: View {
                 cfg.accountID = b2AccountID
                 cfg.keychainKey = key
                 cfg.isConnected = true
-            default:
-                if oauthConnected {
-                    let key = "oauth_\(cloudProvider.rawValue)_\(UUID().uuidString)"
-                    // token already stored by connectOAuth — just record the key reference
-                    cfg.keychainKey = key
-                    cfg.accountID = oauthAccountName
-                    cfg.isConnected = true
-                }
             }
             config = .cloud(cfg)
         case .wifiTransfer:
             config = .wifiTransfer(WiFiTransferConfig())
+        case .appleMusic:
+            config = .appleMusic(AppleMusicSourceConfig())
         }
-        sources.add(source: MusicSource(kind: kind, displayName: name, config: config))
+        let newSource = MusicSource(kind: kind, displayName: name, config: config)
+        sources.add(source: newSource)
+        // Kick off authorisation + initial library scan for Apple Music.
+        if kind == .appleMusic {
+            Task { await sources.connectAppleMusic(source: newSource) }
+        }
     }
 
     // MARK: - Network tests
@@ -718,134 +679,6 @@ struct AddSourceConfigView: View {
             connectionStatus = .failure("Cannot reach \(nasHost):\(nasPort)")
         }
     }
-
-    // MARK: - OAuth connect (Dropbox, Google Drive, OneDrive)
-    private func connectOAuth(provider: CloudProvider) async {
-        guard let authURL = CloudOAuth.authorizationURL(for: provider) else {
-            connectionStatus = .failure("No client ID configured for \(provider.displayName)")
-            return
-        }
-        do {
-            let callbackURL = try await ASWebAuthenticationSession.startSession(
-                url: authURL, callbackURLScheme: CloudOAuth.redirectScheme
-            )
-            let token = try await CloudOAuth.exchangeCode(from: callbackURL, provider: provider)
-            let key = "oauth_\(provider.rawValue)_\(UUID().uuidString)"
-            try KeychainHelper.shared.save(key: key, value: token)
-            oauthConnected = true
-            oauthAccountName = provider.displayName
-            connectionStatus = .success("Connected to \(provider.displayName)")
-        } catch {
-            connectionStatus = .failure(error.localizedDescription)
-        }
-    }
-}
-
-// MARK: - CloudOAuth shared helpers
-/// Register your app with each provider and replace the placeholder client IDs below.
-private enum CloudOAuth {
-    static let redirectScheme    = "loudmouth"
-    static let dropboxClientID   = "YOUR_DROPBOX_APP_KEY"
-    static let googleClientID    = "YOUR_GOOGLE_CLIENT_ID"
-    static let microsoftClientID = "YOUR_MICROSOFT_CLIENT_ID"
-
-    static func authorizationURL(for provider: CloudProvider) -> URL? {
-        switch provider {
-        case .dropbox:
-            var c = URLComponents(string: "https://www.dropbox.com/oauth2/authorize")!
-            c.queryItems = [
-                URLQueryItem(name: "client_id",         value: dropboxClientID),
-                URLQueryItem(name: "response_type",     value: "code"),
-                URLQueryItem(name: "redirect_uri",      value: "\(redirectScheme)://oauth/dropbox"),
-                URLQueryItem(name: "token_access_type", value: "offline"),
-            ]
-            return c.url
-        case .googleDrive:
-            var c = URLComponents(string: "https://accounts.google.com/o/oauth2/v2/auth")!
-            c.queryItems = [
-                URLQueryItem(name: "client_id",     value: googleClientID),
-                URLQueryItem(name: "redirect_uri",  value: "\(redirectScheme)://oauth/google"),
-                URLQueryItem(name: "response_type", value: "code"),
-                URLQueryItem(name: "scope",         value: "https://www.googleapis.com/auth/drive.readonly"),
-                URLQueryItem(name: "access_type",   value: "offline"),
-            ]
-            return c.url
-        case .oneDrive:
-            var c = URLComponents(string: "https://login.microsoftonline.com/common/oauth2/v2.0/authorize")!
-            c.queryItems = [
-                URLQueryItem(name: "client_id",     value: microsoftClientID),
-                URLQueryItem(name: "redirect_uri",  value: "\(redirectScheme)://oauth/onedrive"),
-                URLQueryItem(name: "response_type", value: "code"),
-                URLQueryItem(name: "scope",         value: "Files.Read offline_access"),
-            ]
-            return c.url
-        default:
-            return nil
-        }
-    }
-
-    static func exchangeCode(from callbackURL: URL, provider: CloudProvider) async throws -> String {
-        guard let comps = URLComponents(url: callbackURL, resolvingAgainstBaseURL: false),
-              let code = comps.queryItems?.first(where: { $0.name == "code" })?.value else {
-            throw SourceError.authenticationFailed
-        }
-        let (tokenURLStr, clientID, redirectURI): (String, String, String) = {
-            switch provider {
-            case .dropbox:
-                return ("https://api.dropboxapi.com/oauth2/token",
-                        dropboxClientID, "\(redirectScheme)://oauth/dropbox")
-            case .googleDrive:
-                return ("https://oauth2.googleapis.com/token",
-                        googleClientID, "\(redirectScheme)://oauth/google")
-            case .oneDrive:
-                return ("https://login.microsoftonline.com/common/oauth2/v2.0/token",
-                        microsoftClientID, "\(redirectScheme)://oauth/onedrive")
-            default: return ("", "", "")
-            }
-        }()
-        guard !tokenURLStr.isEmpty, let url = URL(string: tokenURLStr) else {
-            throw SourceError.authenticationFailed
-        }
-        var req = URLRequest(url: url)
-        req.httpMethod = "POST"
-        req.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
-        let body = "grant_type=authorization_code&code=\(code)&client_id=\(clientID)&redirect_uri=\(redirectURI)"
-        req.httpBody = body.data(using: .utf8)
-        let (data, _) = try await URLSession.shared.data(for: req)
-        struct TokenResponse: Decodable { let access_token: String }
-        return try JSONDecoder().decode(TokenResponse.self, from: data).access_token
-    }
-}
-
-// MARK: - ASWebAuthenticationSession SwiftUI helper
-extension ASWebAuthenticationSession {
-    /// Presents a web authentication session and returns the callback URL.
-    @MainActor
-    static func startSession(url: URL, callbackURLScheme: String) async throws -> URL {
-        return try await withCheckedThrowingContinuation { cont in
-            let coordinator = PresentationCoordinator()
-            let session = ASWebAuthenticationSession(
-                url: url, callbackURLScheme: callbackURLScheme
-            ) { callbackURL, error in
-                if let error { cont.resume(throwing: error) }
-                else if let cbURL = callbackURL { cont.resume(returning: cbURL) }
-                else { cont.resume(throwing: SourceError.authenticationFailed) }
-            }
-            session.presentationContextProvider = coordinator
-            session.prefersEphemeralWebBrowserSession = false
-            session.start()
-            // Keep coordinator alive for the duration of the session
-            _ = coordinator
-        }
-    }
-}
-
-private final class PresentationCoordinator: NSObject, ASWebAuthenticationPresentationContextProviding {
-    func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
-        UIApplication.shared.connectedScenes
-            .compactMap { $0 as? UIWindowScene }
-            .first?.windows.first(where: { $0.isKeyWindow }) ?? ASPresentationAnchor()
-    }
 }
 
 // MARK: - MusicSourceKind UI helpers
@@ -858,6 +691,7 @@ extension MusicSourceKind {
         case .webRadio:     .orange
         case .cloud:        .cyan
         case .wifiTransfer: .teal
+        case .appleMusic:   .pink
         }
     }
 
@@ -869,6 +703,61 @@ extension MusicSourceKind {
         case .webRadio:     "Web Radio"
         case .cloud:        "Cloud Drive"
         case .wifiTransfer: "Wi-Fi Transfer"
+        case .appleMusic:   "Apple Music"
+        }
+    }
+}
+
+// MARK: - AppleMusicDetailSection
+/// Shown in SourceDetailView for an Apple Music source. Displays authorisation
+/// status and a button to re-sync the library.
+struct AppleMusicDetailSection: View {
+    let source: MusicSource
+    @EnvironmentObject var sources: SourceViewModel
+    @State private var isSyncing = false
+    @State private var syncResult: String?
+
+    private var config: AppleMusicSourceConfig? {
+        guard case .appleMusic(let c) = source.config else { return nil }
+        return c
+    }
+
+    var body: some View {
+        Section("Apple Music") {
+            LabeledContent("Status") {
+                if config?.isAuthorised == true {
+                    Label("Authorised", systemImage: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+                } else {
+                    Label("Not authorised", systemImage: "xmark.circle.fill")
+                        .foregroundStyle(.red)
+                }
+            }
+            if let count = config?.lastFetchedCount, count > 0 {
+                LabeledContent("Songs in library") {
+                    Text("\(count)")
+                }
+            }
+        }
+        Section {
+            Button {
+                isSyncing = true
+                Task {
+                    await sources.connectAppleMusic(source: source)
+                    isSyncing = false
+                    syncResult = config?.isAuthorised == true ? "Library synced" : "Authorisation denied"
+                }
+            } label: {
+                if isSyncing {
+                    HStack { ProgressView(); Text("Syncing library…").foregroundStyle(.secondary) }
+                } else {
+                    Label("Sync Library Now", systemImage: "arrow.clockwise")
+                }
+            }
+            .disabled(isSyncing)
+            if let result = syncResult {
+                Text(result).font(.caption).foregroundStyle(.secondary)
+            }
         }
     }
 }

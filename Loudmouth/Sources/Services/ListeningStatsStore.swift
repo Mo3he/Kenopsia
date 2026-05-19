@@ -97,8 +97,8 @@ actor Scrobbler {
 
     // Register your app at https://www.last.fm/api/account/create to get these values.
     private enum Config {
-        static let lastFmAPIKey    = "YOUR_LASTFM_API_KEY"
-        static let lastFmAPISecret = "YOUR_LASTFM_API_SECRET"
+        static let lastFmAPIKey    = "1b26a89f8c82a74c59162ff3a51f9145"
+        static let lastFmAPISecret = "2140d7adfb1ec7ef1a1c4a26a0a7c22b"
         static let lastFmEndpoint  = "https://ws.audioscrobbler.com/2.0/"
         static let lbEndpoint      = "https://api.listenbrainz.org/1/submit-listens"
         static let lbValidateURL   = "https://api.listenbrainz.org/1/validate-token"

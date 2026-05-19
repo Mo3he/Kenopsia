@@ -121,6 +121,9 @@ enum TrackURI: Hashable, Codable {
     case dlnaURL(url: URL)
     case webRadio(streamURL: URL)
     case cloudFile(provider: CloudProvider, fileID: String)
+    /// A track from the user's Apple Music library or the Apple Music catalogue,
+    /// identified by its MusicItemID (a stable string from MusicKit).
+    case appleMusicID(id: String)
 
     /// A stable string key that uniquely identifies the track's location,
     /// used for deduplication across rescans.
@@ -132,6 +135,7 @@ enum TrackURI: Hashable, Codable {
         case .dlnaURL(let url):                        return "dlna:\(url.absoluteString)"
         case .webRadio(let url):                       return "radio:\(url.absoluteString)"
         case .cloudFile(let provider, let fileID):     return "cloud:\(provider.rawValue):\(fileID)"
+        case .appleMusicID(let id):                    return "applemusic:\(id)"
         }
     }
 }
@@ -155,15 +159,12 @@ enum AudioFormat: String, Codable, CaseIterable {
 
 // MARK: - CloudProvider
 enum CloudProvider: String, Codable {
-    case dropbox, googleDrive, oneDrive, iCloud, backblaze
+    case iCloud, backblaze
 
     var displayName: String {
         switch self {
-        case .dropbox:     "Dropbox"
-        case .googleDrive: "Google Drive"
-        case .oneDrive:    "OneDrive"
-        case .iCloud:      "iCloud Drive"
-        case .backblaze:   "Backblaze B2"
+        case .iCloud:    "iCloud Drive"
+        case .backblaze: "Backblaze B2"
         }
     }
 }

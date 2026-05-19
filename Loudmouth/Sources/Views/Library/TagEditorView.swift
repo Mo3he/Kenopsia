@@ -193,6 +193,7 @@ struct TagEditorView: View {
         case .dlnaURL:        "DLNA / NAS"
         case .webRadio:       "Web Radio"
         case .cloudFile(let p, _): p.rawValue.capitalized
+        case .appleMusicID:   "Apple Music"
         }
     }
 }

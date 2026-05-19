@@ -28,6 +28,8 @@
     </array>
     <key>NSLocalNetworkUsageDescription</key>
     <string>Loudmouth connects to NAS drives and DLNA servers on your local network to stream music.</string>
+    <key>NSAppleMusicUsageDescription</key>
+    <string>Loudmouth reads your Apple Music library so you can play your songs alongside other sources.</string>
     <key>NSPhotoLibraryUsageDescription</key>
     <string>Loudmouth uses your photo library to let you set custom album artwork.</string>
     <key>NSAppTransportSecurity</key>
@@ -63,6 +65,26 @@
     </array>
     <key>UILaunchScreen</key>
     <dict/>
+    <key>UIApplicationSupportsMultipleScenes</key>
+    <true/>
+    <key>UIApplicationSceneManifest</key>
+    <dict>
+        <key>UIApplicationSupportsMultipleScenes</key>
+        <true/>
+        <key>UISceneConfigurations</key>
+        <dict>
+            <!-- CarPlay scene — iOS routes the CPTemplateApplicationScene here -->
+            <key>CPTemplateApplicationSceneSessionRoleApplication</key>
+            <array>
+                <dict>
+                    <key>UISceneConfigurationName</key>
+                    <string>CarPlay Configuration</string>
+                    <key>UISceneDelegateClassName</key>
+                    <string>$(PRODUCT_MODULE_NAME).CarPlaySceneDelegate</string>
+                </dict>
+            </array>
+        </dict>
+    </dict>
     <key>UIFileSharingEnabled</key>
     <true/>
     <key>LSSupportsOpeningDocumentsInPlace</key>

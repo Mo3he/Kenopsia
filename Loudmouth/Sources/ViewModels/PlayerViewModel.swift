@@ -19,7 +19,7 @@ final class PlayerViewModel: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
 
     init(playback: PlaybackService? = nil) {
-        self.playback = playback ?? PlaybackService()
+        self.playback = playback ?? PlaybackService.shared
         bind()
     }
 

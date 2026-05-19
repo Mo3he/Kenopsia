@@ -216,7 +216,7 @@ actor TagWriter {
     /// Finds the comment packet page in an Ogg bitstream, replaces it, and rewrites the file
     /// with correct OGG page CRCs. Supports Ogg Vorbis and Ogg Opus.
     private func writeOggTags(tags: TrackTags, to url: URL) throws {
-        var data = try Data(contentsOf: url)
+        let data = try Data(contentsOf: url)
         guard data.prefix(4) == Data("OggS".utf8) else { throw TagWriteError.unsupportedFormat }
 
         // Collect page byte-ranges

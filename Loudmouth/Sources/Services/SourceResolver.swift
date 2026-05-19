@@ -46,6 +46,11 @@ actor SourceResolver {
                 throw SourceError.adapterNotFound
             }
             return try await adapter.downloadURL(for: fileID)
+
+        case .appleMusicID:
+            // Apple Music tracks are played via ApplicationMusicPlayer in PlaybackService.
+            // There is no local URL — throw so PlaybackService knows to take that path.
+            throw SourceError.appleMusicTrack
         }
     }
 }
@@ -55,6 +60,8 @@ enum SourceError: Error {
     case authenticationFailed
     case networkUnavailable
     case fileNotFound
+    /// Sentinel: Apple Music tracks have no local URL; PlaybackService handles them via ApplicationMusicPlayer.
+    case appleMusicTrack
 }
 
 // MARK: - MusicSourceAdapter protocol
@@ -234,9 +241,6 @@ actor CloudSourceAdapter: MusicSourceAdapter {
         switch config.provider {
         case .iCloud:      return try await fetchICloudTracks()
         case .backblaze:   return try await fetchBackblazeTracks()
-        case .dropbox:     return try await fetchDropboxTracks()
-        case .googleDrive: return try await fetchGoogleDriveTracks()
-        case .oneDrive:    return try await fetchOneDriveTracks()
         }
     }
 
@@ -249,67 +253,6 @@ actor CloudSourceAdapter: MusicSourceAdapter {
             // fileID is the full HTTPS download URL stored during fetchBackblazeTracks
             guard let url = URL(string: fileID) else { throw SourceError.fileNotFound }
             return url
-
-        case .dropbox:
-            // Use /2/files/get_temporary_link to obtain a short-lived direct download URL
-            guard let token = try? KeychainHelper.shared.read(key: config.keychainKey),
-                  !token.isEmpty else { throw SourceError.authenticationFailed }
-            var req = URLRequest(url: URL(string: "https://api.dropboxapi.com/2/files/get_temporary_link")!)
-            req.httpMethod = "POST"
-            req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-            req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            req.httpBody = try? JSONSerialization.data(withJSONObject: ["path": "id:\(fileID)"])
-            let (data, _) = try await URLSession.shared.data(for: req)
-            struct TempLink: Decodable { let link: String }
-            guard let resp = try? JSONDecoder().decode(TempLink.self, from: data),
-                  let url = URL(string: resp.link) else { throw SourceError.fileNotFound }
-            return url
-
-        case .googleDrive:
-            // Append ?alt=media to stream the file content directly
-            guard let token = try? KeychainHelper.shared.read(key: config.keychainKey),
-                  !token.isEmpty else { throw SourceError.authenticationFailed }
-            guard var comps = URLComponents(string: "https://www.googleapis.com/drive/v3/files/\(fileID)") else {
-                throw SourceError.fileNotFound
-            }
-            comps.queryItems = [URLQueryItem(name: "alt", value: "media")]
-            guard let url = comps.url else { throw SourceError.fileNotFound }
-            // We need to attach the auth header; return a custom URL and intercept via URLProtocol
-            // Instead, build a URLRequest and download to a temp file so AVPlayer can use a local URL
-            var dlReq = URLRequest(url: url)
-            dlReq.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-            let tmpURL = FileManager.default.temporaryDirectory
-                .appendingPathComponent(UUID().uuidString)
-                .appendingPathExtension((fileID as NSString).pathExtension.isEmpty ? "mp3" : (fileID as NSString).pathExtension)
-            let (downloadedURL, _) = try await URLSession.shared.download(for: dlReq)
-            try? FileManager.default.moveItem(at: downloadedURL, to: tmpURL)
-            return tmpURL
-
-        case .oneDrive:
-            // /me/drive/items/{id}/content follows redirects to the actual CDN URL
-            guard let token = try? KeychainHelper.shared.read(key: config.keychainKey),
-                  !token.isEmpty else { throw SourceError.authenticationFailed }
-            guard let url = URL(string: "https://graph.microsoft.com/v1.0/me/drive/items/\(fileID)/content") else {
-                throw SourceError.fileNotFound
-            }
-            var req = URLRequest(url: url)
-            req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-            // The Graph API returns a 302 redirect to a pre-signed CDN URL — follow it
-            let session = URLSession(configuration: .default)  // default follows redirects
-            let (_, response) = try await session.data(for: req)
-            if let httpResp = response as? HTTPURLResponse,
-               let location = httpResp.value(forHTTPHeaderField: "Location"),
-               let redirectURL = URL(string: location) {
-                return redirectURL
-            }
-            // If response was followed directly (200), return a temp download
-            var dlReq = URLRequest(url: url)
-            dlReq.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-            let tmpURL = FileManager.default.temporaryDirectory
-                .appendingPathComponent(UUID().uuidString + ".mp3")
-            let (downloadedURL, _) = try await URLSession.shared.download(for: dlReq)
-            try? FileManager.default.moveItem(at: downloadedURL, to: tmpURL)
-            return tmpURL
         }
     }
 
@@ -427,133 +370,6 @@ actor CloudSourceAdapter: MusicSourceAdapter {
         }
         return tracks
     }
-
-    // MARK: - Dropbox
-    // Dropbox API v2: https://www.dropbox.com/developers/documentation/http/documentation
-    private func fetchDropboxTracks() async throws -> [Track] {
-        guard let token = try? KeychainHelper.shared.read(key: config.keychainKey),
-              !token.isEmpty else { throw SourceError.authenticationFailed }
-
-        var req = URLRequest(url: URL(string: "https://api.dropboxapi.com/2/files/search_v2")!)
-        req.httpMethod = "POST"
-        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        req.httpBody = try? JSONSerialization.data(withJSONObject: [
-            "query": "audio",
-            "options": ["file_categories": ["audio"], "max_results": 1000]
-        ])
-        let (data, _) = try await URLSession.shared.data(for: req)
-
-        struct SearchResult: Decodable {
-            let matches: [Match]
-            struct Match: Decodable {
-                let metadata: MetadataWrapper
-                struct MetadataWrapper: Decodable {
-                    let metadata: FileMetadata
-                    struct FileMetadata: Decodable { let name: String; let id: String; let pathLower: String? }
-                    enum CodingKeys: String, CodingKey { case metadata }
-                }
-            }
-        }
-        guard let result = try? JSONDecoder().decode(SearchResult.self, from: data) else { return [] }
-        let audioExts = Set(["mp3", "flac", "m4a", "aac", "wav", "aiff", "ogg", "opus"])
-        return result.matches.compactMap { match in
-            let meta = match.metadata.metadata
-            let ext = (meta.name as NSString).pathExtension.lowercased()
-            guard audioExts.contains(ext) else { return nil }
-            return Track(
-                title: (meta.name as NSString).deletingPathExtension,
-                source: sourceID,
-                uri: .cloudFile(provider: .dropbox, fileID: meta.id),
-                format: AudioFormat(fileExtension: ext) ?? .mp3,
-                durationSeconds: 0
-            )
-        }
-    }
-
-    // MARK: - Google Drive
-    // Google Drive API v3: https://developers.google.com/drive/api/v3
-    private func fetchGoogleDriveTracks() async throws -> [Track] {
-        guard let token = try? KeychainHelper.shared.read(key: config.keychainKey),
-              !token.isEmpty else { throw SourceError.authenticationFailed }
-
-        let audioMimes = ["audio/mpeg", "audio/flac", "audio/mp4", "audio/x-wav", "audio/aiff",
-                          "audio/ogg", "audio/opus", "audio/x-m4a"]
-        let qParam = "(\(audioMimes.map { "mimeType='\($0)'" }.joined(separator: " or "))) and trashed=false"
-
-        var allFiles: [Track] = []
-        var pageToken: String? = nil
-
-        repeat {
-            var queryItems: [URLQueryItem] = [
-                URLQueryItem(name: "q",        value: qParam),
-                URLQueryItem(name: "fields",   value: "nextPageToken,files(id,name,mimeType,size)"),
-                URLQueryItem(name: "pageSize", value: "1000"),
-            ]
-            if let pt = pageToken { queryItems.append(URLQueryItem(name: "pageToken", value: pt)) }
-            var comps = URLComponents(string: "https://www.googleapis.com/drive/v3/files")!
-            comps.queryItems = queryItems
-            var req = URLRequest(url: comps.url!)
-            req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-            let (data, _) = try await URLSession.shared.data(for: req)
-
-            struct DriveFiles: Decodable {
-                let files: [DriveFile]
-                let nextPageToken: String?
-                struct DriveFile: Decodable { let id: String; let name: String; let mimeType: String }
-            }
-            guard let result = try? JSONDecoder().decode(DriveFiles.self, from: data) else { break }
-            let newTracks: [Track] = result.files.map { file in
-                let ext = (file.name as NSString).pathExtension.lowercased()
-                return Track(
-                    title: (file.name as NSString).deletingPathExtension,
-                    source: sourceID,
-                    uri: .cloudFile(provider: .googleDrive, fileID: file.id),
-                    format: AudioFormat(fileExtension: ext) ?? .mp3,
-                    durationSeconds: 0
-                )
-            }
-            allFiles.append(contentsOf: newTracks)
-            pageToken = result.nextPageToken
-        } while pageToken != nil
-
-        return allFiles
-    }
-
-    // MARK: - OneDrive (Microsoft Graph)
-    // Graph API: https://learn.microsoft.com/en-us/graph/api/driveitem-list-children
-    private func fetchOneDriveTracks() async throws -> [Track] {
-        guard let token = try? KeychainHelper.shared.read(key: config.keychainKey),
-              !token.isEmpty else { throw SourceError.authenticationFailed }
-
-        // Use /me/drive/root/search with a wildcard — filter by extension client-side
-        // because Graph does not support mimeType filter in drive search
-        var req = URLRequest(url: URL(string: "https://graph.microsoft.com/v1.0/me/drive/root/search(q='')?$select=id,name,file,size&$top=1000")!)
-        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        let (data, _) = try await URLSession.shared.data(for: req)
-
-        struct GraphResult: Decodable {
-            let value: [GraphItem]
-            struct GraphItem: Decodable {
-                let id: String; let name: String
-                let file: FileInfo?
-                struct FileInfo: Decodable { let mimeType: String }
-            }
-        }
-        let audioExts = Set(["mp3", "flac", "m4a", "aac", "wav", "aiff", "ogg", "opus"])
-        guard let result = try? JSONDecoder().decode(GraphResult.self, from: data) else { return [] }
-        return result.value.compactMap { item in
-            let ext = (item.name as NSString).pathExtension.lowercased()
-            guard audioExts.contains(ext) else { return nil }
-            return Track(
-                title: (item.name as NSString).deletingPathExtension,
-                source: sourceID,
-                uri: .cloudFile(provider: .oneDrive, fileID: item.id),
-                format: AudioFormat(fileExtension: ext) ?? .mp3,
-                durationSeconds: 0
-            )
-        }
-    }
 }
 
 actor WiFiTransferService: MusicSourceAdapter {
@@ -595,7 +411,7 @@ actor SimpleHTTPServer {
             let listener = try NWListener(using: params, on: NWEndpoint.Port(rawValue: port)!)
             self.listener = listener
             listener.newConnectionHandler = { conn in
-                Task { await self.handle(connection: conn) }
+                Task { await self.handleConnection(conn) }
             }
             listener.start(queue: queue)
         } catch {
@@ -608,33 +424,113 @@ actor SimpleHTTPServer {
         listener = nil
     }
 
-    private func handle(connection: NWConnection) {
-        connection.start(queue: queue)
-        // Read HTTP request, then receive file data
-        receiveRequest(on: connection)
-    }
+    // MARK: - Connection handling
 
-    private func receiveRequest(on connection: NWConnection) {
-        connection.receive(minimumIncompleteLength: 1, maximumLength: 65536) { data, _, isComplete, _ in
-            guard let data, let request = String(data: data, encoding: .utf8) else {
-                connection.cancel()
-                return
+    private func handleConnection(_ connection: NWConnection) async {
+        connection.start(queue: queue)
+
+        // Read until we have the complete HTTP headers (terminated by \r\n\r\n).
+        // We must not convert the whole receive buffer to String because the body
+        // can contain binary audio data that is not valid UTF-8, which causes
+        // String(data:encoding:) to return nil and silently drops the connection.
+        let headerTerminator = Data("\r\n\r\n".utf8)
+        var buffer = Data()
+        while !buffer.contains(headerTerminator) {
+            guard let chunk = await asyncReceive(connection, min: 1, max: 65536) else {
+                connection.cancel(); return
             }
-            // Only handle POST /upload
-            if request.hasPrefix("POST /upload") {
-                Task { await self.receiveBody(on: connection, headerData: data) }
-            } else if request.hasPrefix("GET") {
-                Task { await self.sendUploadPage(on: connection) }
-            } else {
-                connection.cancel()
-            }
+            buffer.append(chunk)
+            if buffer.count > 1_048_576 { connection.cancel(); return } // 1 MB header limit
+        }
+
+        guard let headerEnd = buffer.range(of: headerTerminator) else {
+            connection.cancel(); return
+        }
+        // Parse only the header bytes as text; leave the body as raw Data
+        let headerBytes = buffer[buffer.startIndex..<headerEnd.lowerBound]
+        let bodyAlreadyRead = Data(buffer[headerEnd.upperBound...])
+        guard let headerStr = String(data: headerBytes, encoding: .utf8) else {
+            connection.cancel(); return
+        }
+        let requestLine = headerStr.components(separatedBy: "\r\n").first ?? ""
+
+        if requestLine.hasPrefix("GET") {
+            await sendUploadPage(connection)
+        } else if requestLine.hasPrefix("POST /upload") {
+            await handleUpload(connection, headers: headerStr, bodyAlreadyRead: bodyAlreadyRead)
+        } else {
+            connection.cancel()
         }
     }
 
-    private func sendUploadPage(on connection: NWConnection) {
+    // MARK: - Upload handling
+
+    private func handleUpload(_ connection: NWConnection, headers: String, bodyAlreadyRead: Data) async {
+        var contentLength = 0
+        var boundary = ""
+        for line in headers.components(separatedBy: "\r\n") {
+            let lower = line.lowercased()
+            if lower.hasPrefix("content-length:") {
+                contentLength = Int(line.dropFirst("content-length:".count).trimmingCharacters(in: .whitespaces)) ?? 0
+            }
+            if lower.contains("boundary="), let r = line.range(of: "boundary=", options: .caseInsensitive) {
+                boundary = "--" + String(line[r.upperBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+        }
+        guard !boundary.isEmpty, contentLength > 0 else {
+            await send400(connection); return
+        }
+
+        // Accumulate the body in chunks until we have all contentLength bytes.
+        var body = bodyAlreadyRead
+        while body.count < contentLength {
+            let remaining = contentLength - body.count
+            guard let chunk = await asyncReceive(connection, min: 1, max: min(remaining, 2 * 1024 * 1024)) else { break }
+            body.append(chunk)
+        }
+
+        let savedFilenames = saveMultipartFiles(data: body, boundary: boundary)
+
+        // Build a confirmation page so the user knows the upload worked.
+        let count = savedFilenames.count
+        let fileList: String
+        if savedFilenames.isEmpty {
+            fileList = "<p style='color:#ff3b30'>No supported audio files were found in the upload.</p>"
+        } else {
+            fileList = "<ul>" + savedFilenames.map { "<li>\($0)</li>" }.joined() + "</ul>"
+        }
+        let confirmHTML = """
+        <!DOCTYPE html><html><head>
+        <meta name="viewport" content="width=device-width,initial-scale=1">
+        <title>Loudmouth Upload</title>
+        <style>
+          body{font-family:-apple-system,sans-serif;max-width:520px;margin:40px auto;padding:0 20px}
+          .badge{background:#34c759;color:#fff;padding:4px 14px;border-radius:20px;display:inline-block;margin:8px 0}
+          a{color:#007aff;text-decoration:none;font-size:17px}
+        </style>
+        </head><body>
+        <h2>\(count > 0 ? "Upload complete" : "Nothing uploaded")</h2>
+        \(count > 0 ? "<div class='badge'>\(count) file\(count == 1 ? "" : "s") added to library</div>" : "")
+        \(fileList)
+        <p><a href="/">\(count > 0 ? "Upload more" : "Try again")</a></p>
+        </body></html>
+        """
+        let pageData = Data(confirmHTML.utf8)
+        let pageHeaders = "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: \(pageData.count)\r\nConnection: close\r\n\r\n"
+        var pageResp = Data(pageHeaders.utf8)
+        pageResp.append(pageData)
+        await asyncSend(connection, data: pageResp)
+        connection.cancel()
+    }
+
+    private func sendUploadPage(_ connection: NWConnection) async {
         let html = """
-        <!DOCTYPE html><html><head><meta name="viewport" content="width=device-width">
-        <title>Loudmouth Upload</title></head><body>
+        <!DOCTYPE html><html><head>
+        <meta name="viewport" content="width=device-width,initial-scale=1">
+        <title>Loudmouth Upload</title>
+        <style>body{font-family:-apple-system,sans-serif;max-width:520px;margin:40px auto;padding:0 20px}
+        input[type=submit]{background:#007aff;color:#fff;border:none;padding:12px 24px;border-radius:8px;font-size:16px;cursor:pointer}</style>
+        </head><body>
         <h2>Upload Audio to Loudmouth</h2>
         <form method="post" action="/upload" enctype="multipart/form-data">
           <input type="file" name="audio" accept="audio/*" multiple><br><br>
@@ -642,66 +538,84 @@ actor SimpleHTTPServer {
         </form></body></html>
         """
         let body = Data(html.utf8)
-        let response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: \(body.count)\r\n\r\n"
-        var responseData = Data(response.utf8)
-        responseData.append(body)
-        connection.send(content: responseData, completion: .contentProcessed { _ in connection.cancel() })
+        let headers = "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: \(body.count)\r\nConnection: close\r\n\r\n"
+        var resp = Data(headers.utf8)
+        resp.append(body)
+        await asyncSend(connection, data: resp)
+        connection.cancel()
     }
 
-    private func receiveBody(on connection: NWConnection, headerData: Data) {
-        // Extract boundary from Content-Type header
-        guard let headerStr = String(data: headerData, encoding: .utf8),
-              let boundaryRange = headerStr.range(of: "boundary=") else {
-            send400(on: connection)
-            return
-        }
-        let boundary = "--" + String(headerStr[boundaryRange.upperBound...].prefix(while: { !$0.isNewline && !$0.isWhitespace }))
+    // MARK: - Multipart parsing
 
-        // Read the full body (up to 500 MB)
-        connection.receive(minimumIncompleteLength: 1, maximumLength: 500 * 1024 * 1024) { [self] data, _, _, _ in
-            guard let data else { connection.cancel(); return }
-            Task {
-                await self.saveMultipartFiles(data: data, boundary: boundary)
-                let ok = "HTTP/1.1 303 See Other\r\nLocation: /\r\nContent-Length: 0\r\n\r\n"
-                connection.send(content: Data(ok.utf8), completion: .contentProcessed { _ in connection.cancel() })
-            }
-        }
-    }
-
-    private func saveMultipartFiles(data: Data, boundary: String) {
-        guard let boundaryData = boundary.data(using: .utf8) else { return }
+    @discardableResult
+    private func saveMultipartFiles(data: Data, boundary: String) -> [String] {
+        guard let boundaryData = boundary.data(using: .utf8) else { return [] }
         let parts = data.binarySplit(separator: boundaryData)
-        // parts[0] = preamble, parts.last = epilogue — skip both
-        guard parts.count > 2 else { return }
+        guard parts.count > 2 else { return [] }
 
+        // Store in Documents/WiFiTransfer so the user can see, manage, and delete
+        // their files directly in the Files app (UIFileSharingEnabled = YES in Info.plist).
+        // The App Group container is sandboxed and not visible to the user.
         let destinationRoot = (FileManager.default
-            .containerURL(forSecurityApplicationGroupIdentifier: "group.net.mohome.loudmouth")
-            ?? FileManager.default.temporaryDirectory)
+            .urls(for: .documentDirectory, in: .userDomainMask).first
+            ?? FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.net.mohome.loudmouth")!)
             .appendingPathComponent("WiFiTransfer")
         try? FileManager.default.createDirectory(at: destinationRoot, withIntermediateDirectories: true)
 
+        var savedFilenames: [String] = []
         for part in parts.dropFirst().dropLast() {
             guard let headerEnd = part.range(of: Data("\r\n\r\n".utf8)) else { continue }
             let headerData = part[part.startIndex..<headerEnd.lowerBound]
-            var bodyData = part[headerEnd.upperBound...]
+            var fileBodyData = part[headerEnd.upperBound...]
             let crlf = Data("\r\n".utf8)
-            if bodyData.count >= 2 && bodyData.suffix(2) == crlf { bodyData = bodyData.dropLast(2) }
+            if fileBodyData.count >= 2 && fileBodyData.suffix(2) == crlf {
+                fileBodyData = fileBodyData.dropLast(2)
+            }
             guard let headerStr = String(data: headerData, encoding: .utf8),
                   let filenameRange = headerStr.range(of: "filename=\"") else { continue }
             let filename = String(headerStr[filenameRange.upperBound...].prefix(while: { $0 != "\"" }))
             guard !filename.isEmpty,
                   AudioFormat(fileExtension: URL(fileURLWithPath: filename).pathExtension) != nil else { continue }
             let dest = destinationRoot.appendingPathComponent(filename)
-            try? Data(bodyData).write(to: dest)
+            do {
+                try Data(fileBodyData).write(to: dest)
+                savedFilenames.append(filename)
+            } catch {
+                // File write failed — skip this part; notification won't include it
+            }
         }
-        // Notify the app that new files have been dropped in so the library scanner can pick them up.
-        NotificationCenter.default.post(name: .wifiTransferDidReceiveFiles,
-                                        object: destinationRoot)
+        // Post on the main thread so observers in @MainActor classes can use
+        // their isolated properties directly.
+        if !savedFilenames.isEmpty {
+            let folder = destinationRoot
+            DispatchQueue.main.async {
+                NotificationCenter.default.post(name: .wifiTransferDidReceiveFiles, object: folder)
+            }
+        }
+        return savedFilenames
     }
 
-    private func send400(on connection: NWConnection) {
+    // MARK: - Async network helpers
+
+    private func asyncReceive(_ connection: NWConnection, min: Int, max: Int) async -> Data? {
+        await withCheckedContinuation { cont in
+            connection.receive(minimumIncompleteLength: min, maximumLength: max) { data, _, _, error in
+                guard error == nil else { cont.resume(returning: nil); return }
+                cont.resume(returning: data)
+            }
+        }
+    }
+
+    private func asyncSend(_ connection: NWConnection, data: Data) async {
+        await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
+            connection.send(content: data, completion: .contentProcessed { _ in cont.resume() })
+        }
+    }
+
+    private func send400(_ connection: NWConnection) async {
         let resp = "HTTP/1.1 400 Bad Request\r\nContent-Length: 0\r\n\r\n"
-        connection.send(content: Data(resp.utf8), completion: .contentProcessed { _ in connection.cancel() })
+        await asyncSend(connection, data: Data(resp.utf8))
+        connection.cancel()
     }
 }
 

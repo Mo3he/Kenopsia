@@ -18,7 +18,7 @@ actor OfflineCacheService {
     private init() {
         let container = FileManager.default
             .containerURL(forSecurityApplicationGroupIdentifier: "group.net.mohome.loudmouth")
-            ?? URL(fileURLWithPath: NSTemporaryDirectory())
+            ?? FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
         cacheRoot = container.appendingPathComponent("OfflineCache", isDirectory: true)
         try? FileManager.default.createDirectory(at: cacheRoot, withIntermediateDirectories: true)
         self.cachedTrackIDs = Self.loadCachedIDsFrom(

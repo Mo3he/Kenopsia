@@ -35,8 +35,11 @@ final class AudioEngine {
 
     // MARK: - Init
     init() {
-        buildGraph()
-        configureAudioSession()
+        // Graph is built lazily in start(), after the audio session is active.
+        // Building it here (before the session is configured) means nil-format
+        // connections have no hardware to negotiate against, so they silently
+        // resolve to a null format and nodes end up disconnected on device.
+        observeConfigurationChanges()
     }
 
     // MARK: - Graph construction
@@ -46,29 +49,60 @@ final class AudioEngine {
         engine.attach(eq)
         engine.attach(timePitch)
 
-        let format = engine.mainMixerNode.outputFormat(forBus: 0)
-        engine.connect(playerA,   to: eq,                    format: format)
-        engine.connect(playerB,   to: eq,                    format: format)
-        engine.connect(eq,        to: timePitch,             format: format)
-        engine.connect(timePitch, to: engine.mainMixerNode,  format: format)
-
-        // Provide a tap on the main output for visualisation (future use).
-        engine.mainMixerNode.installTap(onBus: 0, bufferSize: 4096, format: nil) { [weak self] _, _ in
-            // Reserved for spectrum analyser / VU meter
-            _ = self
-        }
+        // Use nil format so AVAudioEngine auto-negotiates the hardware sample rate.
+        // Passing a hard-coded format before the engine starts causes a format mismatch
+        // that silently disconnects nodes when the engine actually starts, leading to
+        // the 'player started when in a disconnected state' crash.
+        engine.connect(playerA,   to: eq,                   format: nil)
+        engine.connect(playerB,   to: eq,                   format: nil)
+        engine.connect(eq,        to: timePitch,            format: nil)
+        engine.connect(timePitch, to: engine.mainMixerNode, format: nil)
     }
 
     private func configureAudioSession() {
         let session = AVAudioSession.sharedInstance()
-        try? session.setCategory(.playback, mode: .default, options: [.allowAirPlay, .allowBluetooth])
+        // .allowBluetooth is only valid for .record / .playAndRecord categories.
+        // Using it with .playback causes kAudio_ParamError (-50) on device which
+        // corrupts the session before the engine starts. Bluetooth output routing
+        // for .playback is handled automatically by the system.
+        try? session.setCategory(.playback, mode: .default, options: [.allowAirPlay])
         try? session.setActive(true)
+    }
+
+    // When the audio route changes (e.g. headphones plugged in, AirPlay switch),
+    // AVAudioEngine stops internally. Per Apple docs, the graph connections are
+    // preserved — we only need to restart the engine, NOT rebuild the graph.
+    // Rebuilding the graph here disconnects the player nodes and causes the
+    // 'player started when in a disconnected state' crash.
+    // Use the main queue so the handler is serialised with play() calls.
+    private func observeConfigurationChanges() {
+        NotificationCenter.default.addObserver(
+            forName: .AVAudioEngineConfigurationChange,
+            object: engine,
+            queue: .main
+        ) { [weak self] _ in
+            guard let self, self.isRunning else { return }
+            self.isRunning = false
+            try? self.start()
+        }
     }
 
     // MARK: - Playback control
     func start() throws {
         guard !isRunning else { return }
+        // Configure the audio session first so the hardware format is known,
+        // then (re)build the graph so nil-format connections resolve correctly.
+        configureAudioSession()
+        buildGraph()
         try engine.start()
+        // engine.start() can succeed without throwing yet leave the engine
+        // in a degraded state on device (e.g. audio session still settling).
+        // Guard here so callers get a Swift error instead of an NSException.
+        guard engine.isRunning else {
+            isRunning = false
+            throw NSError(domain: AVFoundationErrorDomain, code: -1,
+                          userInfo: [NSLocalizedDescriptionKey: "AVAudioEngine failed to start"])
+        }
         isRunning = true
     }
 
@@ -79,9 +113,25 @@ final class AudioEngine {
         isRunning = false
     }
 
+    /// Stop only the player nodes without tearing down the engine graph.
+    /// Use this when switching to AVPlayer streaming so the engine stays
+    /// connected and doesn't need a full restart when returning to local files.
+    func stopPlayers() {
+        playerA.stop()
+        playerB.stop()
+    }
+
     /// Schedule a file for the active player and start playback.
     func play(file: AVAudioFile, replayGainDB: Float? = nil, at time: AVAudioTime? = nil) throws {
         try ensureRunning()
+        // Verify the engine is truly running and the player is wired into the graph.
+        // AVAudioPlayerNode.play() throws an uncatchable NSException (not a Swift error)
+        // when disconnected, so we must gate here and let the caller fall back to AVPlayer.
+        guard engine.isRunning,
+              !engine.outputConnectionPoints(for: activePlayer, outputBus: 0).isEmpty else {
+            throw NSError(domain: AVFoundationErrorDomain, code: -1,
+                          userInfo: [NSLocalizedDescriptionKey: "Player node not connected to engine"])
+        }
         applyReplayGain(replayGainDB)
         activePlayer.stop()
         activePlayer.scheduleFile(file, at: time, completionCallbackType: .dataPlayedBack) { [weak self] _ in
