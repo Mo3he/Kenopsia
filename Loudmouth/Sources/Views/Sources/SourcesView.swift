@@ -338,11 +338,12 @@ struct SourceTypePickerView: View {
     }
 
     private let options: [SourceOption] = [
-        .init(kind: .local,    headline: "Music on This Device",  detail: "Play files stored on your iPhone or iPad"),
-        .init(kind: .nas,      headline: "NAS / DLNA Server",      detail: "Stream from a home server or network drive"),
-        .init(kind: .subsonic, headline: "Subsonic / Navidrome",   detail: "Self-hosted music server with API access"),
-        .init(kind: .webRadio, headline: "Web Radio",              detail: "Internet radio via stream URL"),
-        .init(kind: .cloud,    headline: "Cloud Drive",            detail: "iCloud Drive and Backblaze B2"),
+        .init(kind: .local,      headline: "Music on This Device",  detail: "Play files stored on your iPhone or iPad"),
+        .init(kind: .appleMusic, headline: "Apple Music",           detail: "Play from your Apple Music library"),
+        .init(kind: .nas,        headline: "NAS / DLNA Server",      detail: "Stream from a home server or network drive"),
+        .init(kind: .subsonic,   headline: "Subsonic / Navidrome",   detail: "Self-hosted music server with API access"),
+        .init(kind: .webRadio,   headline: "Web Radio",              detail: "Internet radio via stream URL"),
+        .init(kind: .cloud,      headline: "Cloud Drive",            detail: "iCloud Drive and Backblaze B2"),
     ]
 
     var body: some View {
