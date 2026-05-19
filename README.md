@@ -32,4 +32,4 @@ A powerful, source-agnostic music player for iPhone, iPad, Apple Watch, and CarP
 
 ## License
 
-Personal use.
+MIT
