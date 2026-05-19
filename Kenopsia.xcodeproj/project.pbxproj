@@ -27,8 +27,10 @@
 		6812D5527BE25F6A0BC434DD /* MiniPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF67D77FD4C6A95CD20ECA8D /* MiniPlayerView.swift */; };
 		6BCBD2F14527AEF3B86154AF /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5271F17F31FA49CFAF6D1FD8 /* SettingsView.swift */; };
 		773477F014E0B5057D46908B /* WatchConnectivityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F696B5BCFE7E07DDF6B4DFB /* WatchConnectivityService.swift */; };
+		79BC7812174EE9771F7C9735 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AB1CB506657F6CCAA8923D8F /* Assets.xcassets */; };
 		7F4A4F1CE833BDCB56C0716D /* ListeningStatsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE026C35D02CECB6F52206AD /* ListeningStatsStore.swift */; };
 		7F57AF7D72F496EECF430DCF /* AppleMusicService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B64213BBF9F204D15CA0BF38 /* AppleMusicService.swift */; };
+		80BBAB9D0A94A6EA7E0064FF /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E65E219107D626184D56E9A5 /* Assets.xcassets */; };
 		86E76F59A98748927D9786F1 /* LyricsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30B7F83873306258402DEDA6 /* LyricsView.swift */; };
 		8768AC88D3D50B5A35B2BA17 /* KenopsiaWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 40436B394C3671CBF76B0EB6 /* KenopsiaWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		8A4C26DFAB13E96EE9BE7C92 /* EQView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AFEFB8974BF889E8488628B /* EQView.swift */; };
@@ -130,6 +132,7 @@
 		9CE26A133E764760BF7F7BD9 /* SourceViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourceViewModel.swift; sourceTree = "<group>"; };
 		A11716226C7AD0DC1934C80A /* KenopsiaWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KenopsiaWidget.swift; sourceTree = "<group>"; };
 		A8234CF6AC94BC03AA34BA10 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		AB1CB506657F6CCAA8923D8F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		B261A0376A2AD232731440F0 /* Track.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Track.swift; sourceTree = "<group>"; };
 		B64213BBF9F204D15CA0BF38 /* AppleMusicService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleMusicService.swift; sourceTree = "<group>"; };
 		C05D77E6BAAB5D2C1D3EABBA /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -144,6 +147,7 @@
 		E2A941EF5A64D8C910F8A2E7 /* PlayerState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerState.swift; sourceTree = "<group>"; };
 		E30035785E2BF73E657B184C /* ArtworkFetchService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArtworkFetchService.swift; sourceTree = "<group>"; };
 		E3077C7E1940D4279E4D6B51 /* CarPlaySceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CarPlaySceneDelegate.swift; sourceTree = "<group>"; };
+		E65E219107D626184D56E9A5 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		F09103609A7F5DB996FCDB8A /* KenopsiaWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KenopsiaWidgetBundle.swift; sourceTree = "<group>"; };
 		F4A496F5D40C0A22F9E25ADE /* LyricsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LyricsService.swift; sourceTree = "<group>"; };
 		F5E44F8391C0C510220ACA22 /* NowPlayingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowPlayingView.swift; sourceTree = "<group>"; };
@@ -158,6 +162,15 @@
 				5271F17F31FA49CFAF6D1FD8 /* SettingsView.swift */,
 			);
 			path = Settings;
+			sourceTree = "<group>";
+		};
+		12A328FCA75283E17686FD7B /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				E65E219107D626184D56E9A5 /* Assets.xcassets */,
+			);
+			name = Resources;
+			path = Kenopsia/Resources;
 			sourceTree = "<group>";
 		};
 		12CF5FD34361C0AADB2C5477 /* ViewModels */ = {
@@ -262,6 +275,15 @@
 			path = KenopsiaWatch/Sources;
 			sourceTree = "<group>";
 		};
+		6E787844F0153FC46EF98F7B /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				AB1CB506657F6CCAA8923D8F /* Assets.xcassets */,
+			);
+			name = Resources;
+			path = KenopsiaWatch/Resources;
+			sourceTree = "<group>";
+		};
 		7252A1BF0785AE491C549D80 /* Sources */ = {
 			isa = PBXGroup;
 			children = (
@@ -355,6 +377,8 @@
 			isa = PBXGroup;
 			children = (
 				939877BDFD34C9BFE548B633 /* Kenopsia */,
+				12A328FCA75283E17686FD7B /* Resources */,
+				6E787844F0153FC46EF98F7B /* Resources */,
 				397477BFAED7D918B4B5B843 /* Sources */,
 				6CAAF643966612DB9375F6BD /* Sources */,
 				7252A1BF0785AE491C549D80 /* Sources */,
@@ -378,6 +402,7 @@
 			buildConfigurationList = 8835E1AC08B092A35A764D76 /* Build configuration list for PBXNativeTarget "KenopsiaWatch" */;
 			buildPhases = (
 				B77475A663C3B141E5B89C58 /* Sources */,
+				2439BAAFC6132F9C6566789A /* Resources */,
 			);
 			buildRules = (
 			);
@@ -474,10 +499,19 @@
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		2439BAAFC6132F9C6566789A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				79BC7812174EE9771F7C9735 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		653A64B21F98CF3BD1180038 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				80BBAB9D0A94A6EA7E0064FF /* Assets.xcassets in Resources */,
 				1A2F5CBB23920971AAF6BD18 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

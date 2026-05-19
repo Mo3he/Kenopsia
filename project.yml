@@ -24,8 +24,7 @@ targets:
       - path: Kenopsia/Sources
       - path: Kenopsia/PrivacyInfo.xcprivacy
         buildPhase: resources
-    resources:
-      - path: Kenopsia/Resources
+      - path: Kenopsia/Resources/Assets.xcassets
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: net.mohome.kenopsia
@@ -80,6 +79,7 @@ targets:
     deploymentTarget: "10.0"
     sources:
       - path: KenopsiaWatch/Sources
+      - path: KenopsiaWatch/Resources/Assets.xcassets
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: net.mohome.kenopsia.watch
