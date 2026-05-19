@@ -1,0 +1,859 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		00D117D4D9F130EE48A90D1E /* SourcesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBCA4DA9B388916EDDA0B3DD /* SourcesView.swift */; };
+		01A98A3E4883AA277B4165BE /* ArtworkFetchService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E30035785E2BF73E657B184C /* ArtworkFetchService.swift */; };
+		0D2E3DEB233DE759354B3C0F /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C05D77E6BAAB5D2C1D3EABBA /* ContentView.swift */; };
+		105026E1F08537C5A4E8ED00 /* PlayerState.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2A941EF5A64D8C910F8A2E7 /* PlayerState.swift */; };
+		11044E394C7932489117D0BC /* KenopsiaWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3C957D8F7FB2151F0A63233 /* KenopsiaWatchApp.swift */; };
+		1A2F5CBB23920971AAF6BD18 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = A8234CF6AC94BC03AA34BA10 /* PrivacyInfo.xcprivacy */; };
+		1D8FD5B9E840758DE68B0F9D /* LibraryScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B714E2113B2E2AE3E7AA2C5 /* LibraryScanner.swift */; };
+		21B9D38D7040D5B18DE0077C /* OfflineCacheService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02A5964814A9722620E09632 /* OfflineCacheService.swift */; };
+		2C2E7B2F9C5A8846851E7C91 /* LibraryViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 382D2D228ACDF8DE4FE0F414 /* LibraryViewModel.swift */; };
+		33B4192E56C96F14D4EEE26E /* LibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 412C971425D1FD66F2D36593 /* LibraryView.swift */; };
+		39FFD3BC78B15EE11EC92FF8 /* PlaybackService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B54B4E183BD14D40AB1B143 /* PlaybackService.swift */; };
+		4D66135A69BBA6FA3BE8F2C0 /* NowPlayingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9058F6EF32797DA6DF72427A /* NowPlayingView.swift */; };
+		5174990BB6E0861FFBF49615 /* LibraryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 913F47C740EBBB8FA985FF19 /* LibraryStore.swift */; };
+		55B84D4FBCE46C40F69E15C5 /* TagEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBF2C267AB191792D2CAFE23 /* TagEditorView.swift */; };
+		5C72D0059EBF97290B0BB2B1 /* KenopsiaApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B8DC180D4745CA6522E950F /* KenopsiaApp.swift */; };
+		621F591EC2EC97EFB2E106B1 /* KenopsiaWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = F09103609A7F5DB996FCDB8A /* KenopsiaWidgetBundle.swift */; };
+		653B65720035895627239540 /* SearchViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE01FEA55F31C349B5ED6DA1 /* SearchViewModel.swift */; };
+		6812D5527BE25F6A0BC434DD /* MiniPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF67D77FD4C6A95CD20ECA8D /* MiniPlayerView.swift */; };
+		6BCBD2F14527AEF3B86154AF /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5271F17F31FA49CFAF6D1FD8 /* SettingsView.swift */; };
+		773477F014E0B5057D46908B /* WatchConnectivityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F696B5BCFE7E07DDF6B4DFB /* WatchConnectivityService.swift */; };
+		7F4A4F1CE833BDCB56C0716D /* ListeningStatsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE026C35D02CECB6F52206AD /* ListeningStatsStore.swift */; };
+		7F57AF7D72F496EECF430DCF /* AppleMusicService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B64213BBF9F204D15CA0BF38 /* AppleMusicService.swift */; };
+		86E76F59A98748927D9786F1 /* LyricsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30B7F83873306258402DEDA6 /* LyricsView.swift */; };
+		8768AC88D3D50B5A35B2BA17 /* KenopsiaWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 40436B394C3671CBF76B0EB6 /* KenopsiaWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		8A4C26DFAB13E96EE9BE7C92 /* EQView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AFEFB8974BF889E8488628B /* EQView.swift */; };
+		8AA699360A5ACA63360A095C /* KenopsiaWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = A11716226C7AD0DC1934C80A /* KenopsiaWidget.swift */; };
+		8AE938524EB405D73A839F0A /* AudioEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52D841906237C393DBA22554 /* AudioEngine.swift */; };
+		94BF7C0FCB97A5DECE29007B /* QueueView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 909FFCFA083D9ABCD920CFD8 /* QueueView.swift */; };
+		9B298C865ABBD19B5F883097 /* SubsonicModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = D601164BD3EE0735B9034DE0 /* SubsonicModels.swift */; };
+		A441DF25E463BA6A8034C8F6 /* TagWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B71DAFCF15B48F13B22EA2D /* TagWriter.swift */; };
+		A4B89ABBE19950D0257566E3 /* Queue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C193B53D36D357C1E53ED92 /* Queue.swift */; };
+		A80A76AD82B90CE8F566F720 /* LyricsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A496F5D40C0A22F9E25ADE /* LyricsService.swift */; };
+		AFE72452E4C9D75A0E5800FC /* PhoneConnectivityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF2EEFA4E7D10A6E976090F1 /* PhoneConnectivityService.swift */; };
+		B014E10369BA49E52EDB8859 /* Album.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EDCF99530AA34126F5FDD6C /* Album.swift */; };
+		B8AEA8B542456607A742A93E /* CarPlaySceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3077C7E1940D4279E4D6B51 /* CarPlaySceneDelegate.swift */; };
+		BDFA3114357E0272F8E38E6F /* PlayerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4EDC9CDB4C1F38F0C4BB5209 /* PlayerViewModel.swift */; };
+		C5755A0C32EAB13437BBC908 /* ArtworkFixerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CFD4B550C0CBDF5B49834B7 /* ArtworkFixerView.swift */; };
+		CD15888EF9015F82E1E06BC5 /* SourceResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CCDF0A1C9711DB29F5EA7A2 /* SourceResolver.swift */; };
+		CD94CDE290C1ED2EA4E715DC /* MusicSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B4CFB69AA00CD97366869E6 /* MusicSource.swift */; };
+		CE4877331A075DADA3107017 /* NowPlayingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5E44F8391C0C510220ACA22 /* NowPlayingView.swift */; };
+		D7FB2568BE06171F2A5632FB /* ArtworkCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9ADDA74815DA49F1C1F3246C /* ArtworkCache.swift */; };
+		DE486B750F13BA589ADA3C21 /* SourceViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CE26A133E764760BF7F7BD9 /* SourceViewModel.swift */; };
+		E0BF1CCCADD978DCE947BEE1 /* KenopsiaWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = D917D124283DA316A796BD72 /* KenopsiaWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		F1D32BED55078034ECE49FD2 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29EE131D50110B0FD2D313BA /* OnboardingView.swift */; };
+		F284F08C07BBF523D6AE41FC /* Playlist.swift in Sources */ = {isa = PBXBuildFile; fileRef = C483B308368A4B7A14DE73B1 /* Playlist.swift */; };
+		F52C7DA68B598E81FC6EB3C6 /* SearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 139C263FD8F74B67DF7753C4 /* SearchView.swift */; };
+		F97793A8B1968E83038B5A79 /* Track.swift in Sources */ = {isa = PBXBuildFile; fileRef = B261A0376A2AD232731440F0 /* Track.swift */; };
+		FD2E0BB12AEC99BC358F492D /* DLNABrowser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E6ECC3A730C0F48CABBC256 /* DLNABrowser.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		44AD4CC929C74C294F9B0558 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = EAABB8DC55A3DC08EA2E4ED1 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = CA983D0868E5F4B9E61A5175;
+			remoteInfo = KenopsiaWidget;
+		};
+		BF13D0E0B6794B1FBA74E6CE /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = EAABB8DC55A3DC08EA2E4ED1 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 8E7F0BF35C771CD745C6FF17;
+			remoteInfo = KenopsiaWatch;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		0718B40C4D6E2A5FEB3B10D7 /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				8768AC88D3D50B5A35B2BA17 /* KenopsiaWatch.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		1E4FCDA18EB1B2984C1CDB97 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				E0BF1CCCADD978DCE947BEE1 /* KenopsiaWidget.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		02A5964814A9722620E09632 /* OfflineCacheService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineCacheService.swift; sourceTree = "<group>"; };
+		0AFEFB8974BF889E8488628B /* EQView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EQView.swift; sourceTree = "<group>"; };
+		139C263FD8F74B67DF7753C4 /* SearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchView.swift; sourceTree = "<group>"; };
+		1B4CFB69AA00CD97366869E6 /* MusicSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicSource.swift; sourceTree = "<group>"; };
+		1E6ECC3A730C0F48CABBC256 /* DLNABrowser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DLNABrowser.swift; sourceTree = "<group>"; };
+		1EDCF99530AA34126F5FDD6C /* Album.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Album.swift; sourceTree = "<group>"; };
+		29EE131D50110B0FD2D313BA /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
+		2CFD4B550C0CBDF5B49834B7 /* ArtworkFixerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArtworkFixerView.swift; sourceTree = "<group>"; };
+		30B7F83873306258402DEDA6 /* LyricsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LyricsView.swift; sourceTree = "<group>"; };
+		382D2D228ACDF8DE4FE0F414 /* LibraryViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryViewModel.swift; sourceTree = "<group>"; };
+		40436B394C3671CBF76B0EB6 /* KenopsiaWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = KenopsiaWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		412C971425D1FD66F2D36593 /* LibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryView.swift; sourceTree = "<group>"; };
+		4CCDF0A1C9711DB29F5EA7A2 /* SourceResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourceResolver.swift; sourceTree = "<group>"; };
+		4EDC9CDB4C1F38F0C4BB5209 /* PlayerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerViewModel.swift; sourceTree = "<group>"; };
+		5271F17F31FA49CFAF6D1FD8 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		52D841906237C393DBA22554 /* AudioEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioEngine.swift; sourceTree = "<group>"; };
+		5F696B5BCFE7E07DDF6B4DFB /* WatchConnectivityService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchConnectivityService.swift; sourceTree = "<group>"; };
+		6B54B4E183BD14D40AB1B143 /* PlaybackService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackService.swift; sourceTree = "<group>"; };
+		71D3E6D4916BCA078F4BEFB3 /* Kenopsia.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Kenopsia.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		7B714E2113B2E2AE3E7AA2C5 /* LibraryScanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryScanner.swift; sourceTree = "<group>"; };
+		7B71DAFCF15B48F13B22EA2D /* TagWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TagWriter.swift; sourceTree = "<group>"; };
+		7C193B53D36D357C1E53ED92 /* Queue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Queue.swift; sourceTree = "<group>"; };
+		9058F6EF32797DA6DF72427A /* NowPlayingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowPlayingView.swift; sourceTree = "<group>"; };
+		909FFCFA083D9ABCD920CFD8 /* QueueView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueueView.swift; sourceTree = "<group>"; };
+		913F47C740EBBB8FA985FF19 /* LibraryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryStore.swift; sourceTree = "<group>"; };
+		9ADDA74815DA49F1C1F3246C /* ArtworkCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArtworkCache.swift; sourceTree = "<group>"; };
+		9B8DC180D4745CA6522E950F /* KenopsiaApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KenopsiaApp.swift; sourceTree = "<group>"; };
+		9CE26A133E764760BF7F7BD9 /* SourceViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourceViewModel.swift; sourceTree = "<group>"; };
+		A11716226C7AD0DC1934C80A /* KenopsiaWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KenopsiaWidget.swift; sourceTree = "<group>"; };
+		A8234CF6AC94BC03AA34BA10 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		B261A0376A2AD232731440F0 /* Track.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Track.swift; sourceTree = "<group>"; };
+		B64213BBF9F204D15CA0BF38 /* AppleMusicService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleMusicService.swift; sourceTree = "<group>"; };
+		C05D77E6BAAB5D2C1D3EABBA /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		C483B308368A4B7A14DE73B1 /* Playlist.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Playlist.swift; sourceTree = "<group>"; };
+		CBF2C267AB191792D2CAFE23 /* TagEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TagEditorView.swift; sourceTree = "<group>"; };
+		CF67D77FD4C6A95CD20ECA8D /* MiniPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MiniPlayerView.swift; sourceTree = "<group>"; };
+		D3C957D8F7FB2151F0A63233 /* KenopsiaWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KenopsiaWatchApp.swift; sourceTree = "<group>"; };
+		D601164BD3EE0735B9034DE0 /* SubsonicModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubsonicModels.swift; sourceTree = "<group>"; };
+		D917D124283DA316A796BD72 /* KenopsiaWidget.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = KenopsiaWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		DE01FEA55F31C349B5ED6DA1 /* SearchViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchViewModel.swift; sourceTree = "<group>"; };
+		DF2EEFA4E7D10A6E976090F1 /* PhoneConnectivityService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneConnectivityService.swift; sourceTree = "<group>"; };
+		E2A941EF5A64D8C910F8A2E7 /* PlayerState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerState.swift; sourceTree = "<group>"; };
+		E30035785E2BF73E657B184C /* ArtworkFetchService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArtworkFetchService.swift; sourceTree = "<group>"; };
+		E3077C7E1940D4279E4D6B51 /* CarPlaySceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CarPlaySceneDelegate.swift; sourceTree = "<group>"; };
+		F09103609A7F5DB996FCDB8A /* KenopsiaWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KenopsiaWidgetBundle.swift; sourceTree = "<group>"; };
+		F4A496F5D40C0A22F9E25ADE /* LyricsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LyricsService.swift; sourceTree = "<group>"; };
+		F5E44F8391C0C510220ACA22 /* NowPlayingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowPlayingView.swift; sourceTree = "<group>"; };
+		FBCA4DA9B388916EDDA0B3DD /* SourcesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourcesView.swift; sourceTree = "<group>"; };
+		FE026C35D02CECB6F52206AD /* ListeningStatsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListeningStatsStore.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		055A43A135FB4150E5AD5E3A /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				5271F17F31FA49CFAF6D1FD8 /* SettingsView.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		12CF5FD34361C0AADB2C5477 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				382D2D228ACDF8DE4FE0F414 /* LibraryViewModel.swift */,
+				4EDC9CDB4C1F38F0C4BB5209 /* PlayerViewModel.swift */,
+				DE01FEA55F31C349B5ED6DA1 /* SearchViewModel.swift */,
+				9CE26A133E764760BF7F7BD9 /* SourceViewModel.swift */,
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		293FD896173343811DB39DB6 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				C05D77E6BAAB5D2C1D3EABBA /* ContentView.swift */,
+				A86AD1C1AF23F23508D48CFD /* Library */,
+				600AB50ED9C0ACDA9C01C3F2 /* NowPlaying */,
+				E512ECD4231CCF62ADC65DFD /* Onboarding */,
+				5B3B8795FF8C8CBF3278E202 /* Search */,
+				055A43A135FB4150E5AD5E3A /* Settings */,
+				D3BE6750F3E74ECBFC9F8A83 /* Sources */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		397477BFAED7D918B4B5B843 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				423B8EF32AD648F5976151A6 /* App */,
+				3F15600B61C3F82DFF176A97 /* CarPlay */,
+				99FA8E95C3F9D36068BD56F1 /* Models */,
+				D8D9F7191A87F617C97D046D /* Services */,
+				12CF5FD34361C0AADB2C5477 /* ViewModels */,
+				293FD896173343811DB39DB6 /* Views */,
+			);
+			name = Sources;
+			path = Kenopsia/Sources;
+			sourceTree = "<group>";
+		};
+		3F15600B61C3F82DFF176A97 /* CarPlay */ = {
+			isa = PBXGroup;
+			children = (
+				E3077C7E1940D4279E4D6B51 /* CarPlaySceneDelegate.swift */,
+			);
+			path = CarPlay;
+			sourceTree = "<group>";
+		};
+		423B8EF32AD648F5976151A6 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				9B8DC180D4745CA6522E950F /* KenopsiaApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		4A636DE269537617F4500996 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				D3C957D8F7FB2151F0A63233 /* KenopsiaWatchApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		5664E0BEF6EE16B0D551ECB2 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				9058F6EF32797DA6DF72427A /* NowPlayingView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		5B3B8795FF8C8CBF3278E202 /* Search */ = {
+			isa = PBXGroup;
+			children = (
+				139C263FD8F74B67DF7753C4 /* SearchView.swift */,
+			);
+			path = Search;
+			sourceTree = "<group>";
+		};
+		600AB50ED9C0ACDA9C01C3F2 /* NowPlaying */ = {
+			isa = PBXGroup;
+			children = (
+				0AFEFB8974BF889E8488628B /* EQView.swift */,
+				30B7F83873306258402DEDA6 /* LyricsView.swift */,
+				CF67D77FD4C6A95CD20ECA8D /* MiniPlayerView.swift */,
+				F5E44F8391C0C510220ACA22 /* NowPlayingView.swift */,
+				909FFCFA083D9ABCD920CFD8 /* QueueView.swift */,
+			);
+			path = NowPlaying;
+			sourceTree = "<group>";
+		};
+		6CAAF643966612DB9375F6BD /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				4A636DE269537617F4500996 /* App */,
+				9D5DD2CBDD0C0A323D0975ED /* Services */,
+				5664E0BEF6EE16B0D551ECB2 /* Views */,
+			);
+			name = Sources;
+			path = KenopsiaWatch/Sources;
+			sourceTree = "<group>";
+		};
+		7252A1BF0785AE491C549D80 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				A11716226C7AD0DC1934C80A /* KenopsiaWidget.swift */,
+				F09103609A7F5DB996FCDB8A /* KenopsiaWidgetBundle.swift */,
+			);
+			name = Sources;
+			path = KenopsiaWidget/Sources;
+			sourceTree = "<group>";
+		};
+		939877BDFD34C9BFE548B633 /* Kenopsia */ = {
+			isa = PBXGroup;
+			children = (
+				A8234CF6AC94BC03AA34BA10 /* PrivacyInfo.xcprivacy */,
+			);
+			path = Kenopsia;
+			sourceTree = "<group>";
+		};
+		99FA8E95C3F9D36068BD56F1 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				1EDCF99530AA34126F5FDD6C /* Album.swift */,
+				1B4CFB69AA00CD97366869E6 /* MusicSource.swift */,
+				E2A941EF5A64D8C910F8A2E7 /* PlayerState.swift */,
+				C483B308368A4B7A14DE73B1 /* Playlist.swift */,
+				7C193B53D36D357C1E53ED92 /* Queue.swift */,
+				B261A0376A2AD232731440F0 /* Track.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		9D5DD2CBDD0C0A323D0975ED /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				DF2EEFA4E7D10A6E976090F1 /* PhoneConnectivityService.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		A86AD1C1AF23F23508D48CFD /* Library */ = {
+			isa = PBXGroup;
+			children = (
+				2CFD4B550C0CBDF5B49834B7 /* ArtworkFixerView.swift */,
+				412C971425D1FD66F2D36593 /* LibraryView.swift */,
+				CBF2C267AB191792D2CAFE23 /* TagEditorView.swift */,
+			);
+			path = Library;
+			sourceTree = "<group>";
+		};
+		D3BE6750F3E74ECBFC9F8A83 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				FBCA4DA9B388916EDDA0B3DD /* SourcesView.swift */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		D6C38ED8E6EABBDCE543584B /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				71D3E6D4916BCA078F4BEFB3 /* Kenopsia.app */,
+				40436B394C3671CBF76B0EB6 /* KenopsiaWatch.app */,
+				D917D124283DA316A796BD72 /* KenopsiaWidget.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		D8D9F7191A87F617C97D046D /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				B64213BBF9F204D15CA0BF38 /* AppleMusicService.swift */,
+				9ADDA74815DA49F1C1F3246C /* ArtworkCache.swift */,
+				E30035785E2BF73E657B184C /* ArtworkFetchService.swift */,
+				52D841906237C393DBA22554 /* AudioEngine.swift */,
+				1E6ECC3A730C0F48CABBC256 /* DLNABrowser.swift */,
+				7B714E2113B2E2AE3E7AA2C5 /* LibraryScanner.swift */,
+				913F47C740EBBB8FA985FF19 /* LibraryStore.swift */,
+				FE026C35D02CECB6F52206AD /* ListeningStatsStore.swift */,
+				F4A496F5D40C0A22F9E25ADE /* LyricsService.swift */,
+				02A5964814A9722620E09632 /* OfflineCacheService.swift */,
+				6B54B4E183BD14D40AB1B143 /* PlaybackService.swift */,
+				4CCDF0A1C9711DB29F5EA7A2 /* SourceResolver.swift */,
+				D601164BD3EE0735B9034DE0 /* SubsonicModels.swift */,
+				7B71DAFCF15B48F13B22EA2D /* TagWriter.swift */,
+				5F696B5BCFE7E07DDF6B4DFB /* WatchConnectivityService.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		DB8755A921E4D17332D29DAB = {
+			isa = PBXGroup;
+			children = (
+				939877BDFD34C9BFE548B633 /* Kenopsia */,
+				397477BFAED7D918B4B5B843 /* Sources */,
+				6CAAF643966612DB9375F6BD /* Sources */,
+				7252A1BF0785AE491C549D80 /* Sources */,
+				D6C38ED8E6EABBDCE543584B /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		E512ECD4231CCF62ADC65DFD /* Onboarding */ = {
+			isa = PBXGroup;
+			children = (
+				29EE131D50110B0FD2D313BA /* OnboardingView.swift */,
+			);
+			path = Onboarding;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		8E7F0BF35C771CD745C6FF17 /* KenopsiaWatch */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 8835E1AC08B092A35A764D76 /* Build configuration list for PBXNativeTarget "KenopsiaWatch" */;
+			buildPhases = (
+				B77475A663C3B141E5B89C58 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = KenopsiaWatch;
+			packageProductDependencies = (
+			);
+			productName = KenopsiaWatch;
+			productReference = 40436B394C3671CBF76B0EB6 /* KenopsiaWatch.app */;
+			productType = "com.apple.product-type.application";
+		};
+		C139513D39CCCB27D6FA273D /* Kenopsia */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 319A1E16FF2C800C7AE98FB1 /* Build configuration list for PBXNativeTarget "Kenopsia" */;
+			buildPhases = (
+				1635F1F187032EFF4634DDDD /* Sources */,
+				653A64B21F98CF3BD1180038 /* Resources */,
+				1E4FCDA18EB1B2984C1CDB97 /* Embed Foundation Extensions */,
+				0718B40C4D6E2A5FEB3B10D7 /* Embed Watch Content */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				63AE6589726EDD9F32FC416F /* PBXTargetDependency */,
+				8C80368260CE4F0044627520 /* PBXTargetDependency */,
+			);
+			name = Kenopsia;
+			packageProductDependencies = (
+			);
+			productName = Kenopsia;
+			productReference = 71D3E6D4916BCA078F4BEFB3 /* Kenopsia.app */;
+			productType = "com.apple.product-type.application";
+		};
+		CA983D0868E5F4B9E61A5175 /* KenopsiaWidget */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C0620C27D53342713BB06524 /* Build configuration list for PBXNativeTarget "KenopsiaWidget" */;
+			buildPhases = (
+				595CFF98BC2B480950025AE1 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = KenopsiaWidget;
+			packageProductDependencies = (
+			);
+			productName = KenopsiaWidget;
+			productReference = D917D124283DA316A796BD72 /* KenopsiaWidget.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		EAABB8DC55A3DC08EA2E4ED1 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					8E7F0BF35C771CD745C6FF17 = {
+						DevelopmentTeam = KTX2SJ3P98;
+						ProvisioningStyle = Automatic;
+					};
+					C139513D39CCCB27D6FA273D = {
+						DevelopmentTeam = KTX2SJ3P98;
+						ProvisioningStyle = Automatic;
+					};
+					CA983D0868E5F4B9E61A5175 = {
+						DevelopmentTeam = KTX2SJ3P98;
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = C8CFF78FFED826760AB91BB1 /* Build configuration list for PBXProject "Kenopsia" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = DB8755A921E4D17332D29DAB;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = D6C38ED8E6EABBDCE543584B /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				C139513D39CCCB27D6FA273D /* Kenopsia */,
+				8E7F0BF35C771CD745C6FF17 /* KenopsiaWatch */,
+				CA983D0868E5F4B9E61A5175 /* KenopsiaWidget */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		653A64B21F98CF3BD1180038 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1A2F5CBB23920971AAF6BD18 /* PrivacyInfo.xcprivacy in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		1635F1F187032EFF4634DDDD /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B014E10369BA49E52EDB8859 /* Album.swift in Sources */,
+				7F57AF7D72F496EECF430DCF /* AppleMusicService.swift in Sources */,
+				D7FB2568BE06171F2A5632FB /* ArtworkCache.swift in Sources */,
+				01A98A3E4883AA277B4165BE /* ArtworkFetchService.swift in Sources */,
+				C5755A0C32EAB13437BBC908 /* ArtworkFixerView.swift in Sources */,
+				8AE938524EB405D73A839F0A /* AudioEngine.swift in Sources */,
+				B8AEA8B542456607A742A93E /* CarPlaySceneDelegate.swift in Sources */,
+				0D2E3DEB233DE759354B3C0F /* ContentView.swift in Sources */,
+				FD2E0BB12AEC99BC358F492D /* DLNABrowser.swift in Sources */,
+				8A4C26DFAB13E96EE9BE7C92 /* EQView.swift in Sources */,
+				5C72D0059EBF97290B0BB2B1 /* KenopsiaApp.swift in Sources */,
+				1D8FD5B9E840758DE68B0F9D /* LibraryScanner.swift in Sources */,
+				5174990BB6E0861FFBF49615 /* LibraryStore.swift in Sources */,
+				33B4192E56C96F14D4EEE26E /* LibraryView.swift in Sources */,
+				2C2E7B2F9C5A8846851E7C91 /* LibraryViewModel.swift in Sources */,
+				7F4A4F1CE833BDCB56C0716D /* ListeningStatsStore.swift in Sources */,
+				A80A76AD82B90CE8F566F720 /* LyricsService.swift in Sources */,
+				86E76F59A98748927D9786F1 /* LyricsView.swift in Sources */,
+				6812D5527BE25F6A0BC434DD /* MiniPlayerView.swift in Sources */,
+				CD94CDE290C1ED2EA4E715DC /* MusicSource.swift in Sources */,
+				CE4877331A075DADA3107017 /* NowPlayingView.swift in Sources */,
+				21B9D38D7040D5B18DE0077C /* OfflineCacheService.swift in Sources */,
+				F1D32BED55078034ECE49FD2 /* OnboardingView.swift in Sources */,
+				39FFD3BC78B15EE11EC92FF8 /* PlaybackService.swift in Sources */,
+				105026E1F08537C5A4E8ED00 /* PlayerState.swift in Sources */,
+				BDFA3114357E0272F8E38E6F /* PlayerViewModel.swift in Sources */,
+				F284F08C07BBF523D6AE41FC /* Playlist.swift in Sources */,
+				A4B89ABBE19950D0257566E3 /* Queue.swift in Sources */,
+				94BF7C0FCB97A5DECE29007B /* QueueView.swift in Sources */,
+				F52C7DA68B598E81FC6EB3C6 /* SearchView.swift in Sources */,
+				653B65720035895627239540 /* SearchViewModel.swift in Sources */,
+				6BCBD2F14527AEF3B86154AF /* SettingsView.swift in Sources */,
+				CD15888EF9015F82E1E06BC5 /* SourceResolver.swift in Sources */,
+				DE486B750F13BA589ADA3C21 /* SourceViewModel.swift in Sources */,
+				00D117D4D9F130EE48A90D1E /* SourcesView.swift in Sources */,
+				9B298C865ABBD19B5F883097 /* SubsonicModels.swift in Sources */,
+				55B84D4FBCE46C40F69E15C5 /* TagEditorView.swift in Sources */,
+				A441DF25E463BA6A8034C8F6 /* TagWriter.swift in Sources */,
+				F97793A8B1968E83038B5A79 /* Track.swift in Sources */,
+				773477F014E0B5057D46908B /* WatchConnectivityService.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		595CFF98BC2B480950025AE1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8AA699360A5ACA63360A095C /* KenopsiaWidget.swift in Sources */,
+				621F591EC2EC97EFB2E106B1 /* KenopsiaWidgetBundle.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B77475A663C3B141E5B89C58 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				11044E394C7932489117D0BC /* KenopsiaWatchApp.swift in Sources */,
+				4D66135A69BBA6FA3BE8F2C0 /* NowPlayingView.swift in Sources */,
+				AFE72452E4C9D75A0E5800FC /* PhoneConnectivityService.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		63AE6589726EDD9F32FC416F /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = CA983D0868E5F4B9E61A5175 /* KenopsiaWidget */;
+			targetProxy = 44AD4CC929C74C294F9B0558 /* PBXContainerItemProxy */;
+		};
+		8C80368260CE4F0044627520 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 8E7F0BF35C771CD745C6FF17 /* KenopsiaWatch */;
+			targetProxy = BF13D0E0B6794B1FBA74E6CE /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		0D0887B745A32A07B8A9FD8F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = KenopsiaWatch/Info.plist;
+				PRODUCT_BUNDLE_IDENTIFIER = net.mohome.kenopsia.watch;
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.1;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Release;
+		};
+		1A9DBEAA8629E39A3B363212 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Kenopsia/Kenopsia.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				ENABLE_DEBUG_DYLIB = NO;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Kenopsia/Info.plist;
+				INFOPLIST_KEY_UIBackgroundModes = audio;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = net.mohome.kenopsia;
+				"PRODUCT_BUNDLE_IDENTIFIER[sdk=macosx*]" = maccatalyst.net.mohome.kenopsia;
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		2B9809DB1B211F8999ED2DF1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = KTX2SJ3P98;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.1;
+			};
+			name = Debug;
+		};
+		5FA1C480777AC7A249A916CC /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = KenopsiaWatch/Info.plist;
+				PRODUCT_BUNDLE_IDENTIFIER = net.mohome.kenopsia.watch;
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.1;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Debug;
+		};
+		67A4944B6FBE5223C5FB2054 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = KenopsiaWidget/KenopsiaWidget.entitlements;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = KenopsiaWidget/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = net.mohome.kenopsia.widget;
+				"PRODUCT_BUNDLE_IDENTIFIER[sdk=macosx*]" = maccatalyst.net.mohome.kenopsia.widget;
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = YES;
+				SWIFT_VERSION = 5.1;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		995B78F6C81C40996DFE57FD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Kenopsia/Kenopsia.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				ENABLE_DEBUG_DYLIB = NO;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Kenopsia/Info.plist;
+				INFOPLIST_KEY_UIBackgroundModes = audio;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = net.mohome.kenopsia;
+				"PRODUCT_BUNDLE_IDENTIFIER[sdk=macosx*]" = maccatalyst.net.mohome.kenopsia;
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		E2A3B547DED49089E702BFF4 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = KenopsiaWidget/KenopsiaWidget.entitlements;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = KenopsiaWidget/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = net.mohome.kenopsia.widget;
+				"PRODUCT_BUNDLE_IDENTIFIER[sdk=macosx*]" = maccatalyst.net.mohome.kenopsia.widget;
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = YES;
+				SWIFT_VERSION = 5.1;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		E54636603B65E73310623505 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = KTX2SJ3P98;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.1;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		319A1E16FF2C800C7AE98FB1 /* Build configuration list for PBXNativeTarget "Kenopsia" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				995B78F6C81C40996DFE57FD /* Debug */,
+				1A9DBEAA8629E39A3B363212 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		8835E1AC08B092A35A764D76 /* Build configuration list for PBXNativeTarget "KenopsiaWatch" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5FA1C480777AC7A249A916CC /* Debug */,
+				0D0887B745A32A07B8A9FD8F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		C0620C27D53342713BB06524 /* Build configuration list for PBXNativeTarget "KenopsiaWidget" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E2A3B547DED49089E702BFF4 /* Debug */,
+				67A4944B6FBE5223C5FB2054 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		C8CFF78FFED826760AB91BB1 /* Build configuration list for PBXProject "Kenopsia" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				2B9809DB1B211F8999ED2DF1 /* Debug */,
+				E54636603B65E73310623505 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = EAABB8DC55A3DC08EA2E4ED1 /* Project object */;
+}
