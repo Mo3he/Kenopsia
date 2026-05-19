@@ -20,5 +20,7 @@
     <string>1</string>
     <key>WKApplication</key>
     <true/>
+    <key>WKCompanionAppBundleIdentifier</key>
+    <string>net.mohome.loudmouth</string>
 </dict>
 </plist>
