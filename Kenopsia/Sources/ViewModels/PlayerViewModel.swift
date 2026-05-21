@@ -28,7 +28,6 @@ final class PlayerViewModel: ObservableObject {
     func next()            { playback.next() }
     func previous()        { playback.previous() }
     func seek(to seconds: Double) { playback.seek(to: seconds) }
-    func setVolume(_ v: Float)    { playback.setVolume(v) }
 
     func toggleFavourite() { toggleFavourite(track: queue.currentTrack) }
 
@@ -49,7 +48,19 @@ final class PlayerViewModel: ObservableObject {
         playback.replace(with: tracks, startAt: index)
     }
 
+    /// Jump to a specific index within the current queue without rebuilding it.
+    func skipTo(index: Int) {
+        playback.skipTo(index: index)
+    }
+
     func enqueueNext(_ track: Track)  { playback.enqueue(track) }
+    func enqueueLast(_ track: Track) { queue.enqueueLast(track) }
+
+    /// Clear the queue and stop all playback.
+    func clearQueue() {
+        playback.stop()
+        queue.replace(with: [])
+    }
 
     func apply(eqPreset preset: EQPreset) { playback.apply(preset: preset) }
 
@@ -59,5 +70,12 @@ final class PlayerViewModel: ObservableObject {
         playback.$queue.assign(to: &$queue)
         playback.$currentLyrics.assign(to: &$lyrics)
         playback.$currentEQPreset.assign(to: &$eqPreset)
+        // Queue is a class; its internal @Published properties don't propagate through
+        // our @Published var queue wrapper. Forward its objectWillChange so SwiftUI
+        // views that read queue.currentTrack, queue.tracks, etc. always re-render.
+        playback.queue.objectWillChange
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.objectWillChange.send() }
+            .store(in: &cancellables)
     }
 }

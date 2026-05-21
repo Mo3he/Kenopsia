@@ -46,6 +46,8 @@ struct Track: Identifiable, Hashable, Codable {
     var isExplicit: Bool
     var bpm: Double?
     var acoustID: String?           // AcoustID fingerprint match
+    /// Star rating 0-5. 0 = unrated.
+    var rating: Int
 
     init(
         id: UUID = UUID(),
@@ -77,7 +79,8 @@ struct Track: Identifiable, Hashable, Codable {
         isFavourited: Bool = false,
         isExplicit: Bool = false,
         bpm: Double? = nil,
-        acoustID: String? = nil
+        acoustID: String? = nil,
+        rating: Int = 0
     ) {
         self.id = id
         self.title = title
@@ -109,6 +112,7 @@ struct Track: Identifiable, Hashable, Codable {
         self.isExplicit = isExplicit
         self.bpm = bpm
         self.acoustID = acoustID
+        self.rating = rating
     }
 }
 

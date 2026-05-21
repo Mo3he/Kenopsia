@@ -57,7 +57,7 @@ actor TagWriter {
             return item
         }
 
-        // iTunes atom key strings — cross-platform (iOS + macOS Catalyst)
+        // iTunes atom key strings
         let ks = AVMetadataKeySpace.iTunes
         if let v = tags.title       { metadataItems.append(makeItem(keyString: "©nam", keySpace: ks, value: v as NSString)) }
         if let v = tags.artist      { metadataItems.append(makeItem(keyString: "©ART", keySpace: ks, value: v as NSString)) }
@@ -66,6 +66,20 @@ actor TagWriter {
         if let v = tags.genre       { metadataItems.append(makeItem(keyString: "©gen", keySpace: ks, value: v as NSString)) }
         if let v = tags.composer    { metadataItems.append(makeItem(keyString: "©wrt", keySpace: ks, value: v as NSString)) }
         if let v = tags.year        { metadataItems.append(makeItem(keyString: "©day", keySpace: ks, value: "\(v)" as NSString)) }
+
+        // Preserve existing metadata items we are NOT overriding (artwork, track#, etc.)
+        let overriddenKeys: Set<String> = ["©nam", "©ART", "©alb", "aART", "©gen", "©wrt", "©day"]
+        let existingMetadata = try await asset.load(.metadata)
+        for item in existingMetadata {
+            guard let key = item.key as? String else {
+                // Non-string keys (numeric iTunes keys like covr) -- preserve them
+                metadataItems.append(item.mutableCopy() as! AVMutableMetadataItem)
+                continue
+            }
+            if !overriddenKeys.contains(key) {
+                metadataItems.append(item.mutableCopy() as! AVMutableMetadataItem)
+            }
+        }
 
         exportSession.metadata = metadataItems
         await exportSession.export()
@@ -83,7 +97,11 @@ actor TagWriter {
     /// then writes updated frames back with the same or larger header size.
     private func writeID3Tags(tags: TrackTags, to url: URL) throws {
         var fileData = try Data(contentsOf: url)
-        let newFrames = buildID3Frames(tags: tags)
+
+        // Parse existing frames so we can preserve those we don't overwrite
+        let preservedFrames = preservedID3Frames(from: fileData, overriddenBy: tags)
+        let newFrames = preservedFrames + buildID3Frames(tags: tags)
+
         // Total content = frames. In the padded in-place case we add extra zero bytes,
         // but the size field always reflects the full content region (frames + padding).
         let newHeader = buildID3v24Header(frames: newFrames)
@@ -102,6 +120,54 @@ actor TagWriter {
             fileData = newHeader + audioData
         }
         try fileData.write(to: url, options: .atomic)
+    }
+
+    /// Extracts existing ID3 frames that are NOT being overwritten, re-encoding their
+    /// sizes as syncsafe (v2.4) regardless of the original tag version.
+    private func preservedID3Frames(from data: Data, overriddenBy tags: TrackTags) -> Data {
+        guard data.count >= 10,
+              data[0] == 0x49, data[1] == 0x44, data[2] == 0x33 else { return Data() }
+        let majorVersion = data[3]  // 3 = ID3v2.3, 4 = ID3v2.4
+        guard let tagSize = existingID3Size(in: data), tagSize > 10 else { return Data() }
+
+        // Frame IDs we always write fresh
+        var overriddenIDs: Set<String> = ["TIT2", "TPE1", "TPE2", "TALB", "TCON", "TCOM", "TDRC", "TYER", "TRCK", "TPOS", "COMM"]
+        if tags.artworkData != nil { overriddenIDs.insert("APIC") }
+
+        var preserved = Data()
+        var offset = 10
+        while offset + 10 <= tagSize {
+            let idBytes = data[offset..<offset+4]
+            guard let frameID = String(data: idBytes, encoding: .ascii),
+                  frameID.first?.isLetter == true else { break }
+
+            let frameContentSize: Int
+            if majorVersion >= 4 {
+                frameContentSize = (Int(data[offset+4]) << 21) | (Int(data[offset+5]) << 14)
+                                 | (Int(data[offset+6]) << 7)  | Int(data[offset+7])
+            } else {
+                frameContentSize = (Int(data[offset+4]) << 24) | (Int(data[offset+5]) << 16)
+                                 | (Int(data[offset+6]) << 8)  | Int(data[offset+7])
+            }
+            let frameEnd = offset + 10 + frameContentSize
+            guard frameEnd <= tagSize, frameContentSize > 0 else { break }
+
+            if !overriddenIDs.contains(frameID) {
+                // Re-encode frame with v2.4 syncsafe size
+                let content = data[offset+10..<frameEnd]
+                var frame = Data()
+                frame.append(contentsOf: Array(frameID.utf8))
+                frame.append(UInt8((frameContentSize >> 21) & 0x7F))
+                frame.append(UInt8((frameContentSize >> 14) & 0x7F))
+                frame.append(UInt8((frameContentSize >> 7)  & 0x7F))
+                frame.append(UInt8(frameContentSize & 0x7F))
+                frame.append(contentsOf: [0x00, 0x00])  // flags (clear)
+                frame.append(content)
+                preserved.append(frame)
+            }
+            offset = frameEnd
+        }
+        return preserved
     }
 
     private func existingID3Size(in data: Data) -> Int? {
@@ -196,13 +262,78 @@ actor TagWriter {
         var data = try Data(contentsOf: url)
         guard data.prefix(4) == Data("fLaC".utf8) else { throw TagWriteError.unsupportedFormat }
 
-        let comments = buildVorbisCommentBlock(tags: tags)
+        // Extract existing Vorbis comments to preserve non-standard entries
+        let existing = extractExistingVorbisComments(from: data)
+        let comments = buildVorbisCommentBlock(tags: tags, preserving: existing)
         data = replaceVorbisBlock(in: data, newBlock: comments)
         try data.write(to: url, options: .atomic)
     }
 
-    private func buildVorbisCommentBlock(tags: TrackTags) -> Data {
+    /// Extracts Vorbis comment entries from a FLAC file's VORBIS_COMMENT block.
+    private func extractExistingVorbisComments(from flacData: Data) -> [String] {
+        var offset = 4  // skip "fLaC" marker
+        while offset + 4 <= flacData.count {
+            let header = flacData[offset]
+            let isLast = (header & 0x80) != 0
+            let type   = header & 0x7F
+            let size   = (Int(flacData[offset + 1]) << 16)
+                       | (Int(flacData[offset + 2]) << 8)
+                       |  Int(flacData[offset + 3])
+            let blockStart = offset + 4
+            let blockEnd = blockStart + size
+            guard blockEnd <= flacData.count else { break }
+            if type == 4 {
+                return parseVorbisCommentEntries(from: flacData[blockStart..<blockEnd])
+            }
+            offset = blockEnd
+            if isLast { break }
+        }
+        return []
+    }
+
+    /// Parses Vorbis comment entries from raw comment block data (vendor + entries).
+    private func parseVorbisCommentEntries(from block: Data) -> [String] {
+        var pos = block.startIndex
+        guard pos + 4 <= block.endIndex else { return [] }
+        let vendorLen = Int(block[pos]) | (Int(block[pos+1]) << 8)
+                      | (Int(block[pos+2]) << 16) | (Int(block[pos+3]) << 24)
+        pos += 4 + vendorLen
+        guard pos + 4 <= block.endIndex else { return [] }
+        let count = Int(block[pos]) | (Int(block[pos+1]) << 8)
+                  | (Int(block[pos+2]) << 16) | (Int(block[pos+3]) << 24)
+        pos += 4
         var entries: [String] = []
+        for _ in 0..<count {
+            guard pos + 4 <= block.endIndex else { break }
+            let len = Int(block[pos]) | (Int(block[pos+1]) << 8)
+                    | (Int(block[pos+2]) << 16) | (Int(block[pos+3]) << 24)
+            pos += 4
+            guard pos + len <= block.endIndex else { break }
+            if let s = String(data: block[pos..<pos+len], encoding: .utf8) {
+                entries.append(s)
+            }
+            pos += len
+        }
+        return entries
+    }
+
+    private func buildVorbisCommentBlock(tags: TrackTags, preserving existingComments: [String] = []) -> Data {
+        // Keys we always write fresh
+        let overriddenKeys: Set<String> = [
+            "TITLE", "ARTIST", "ALBUMARTIST", "ALBUM", "GENRE",
+            "COMPOSER", "DATE", "TRACKNUMBER", "DISCNUMBER", "COMMENT"
+        ]
+
+        var entries: [String] = []
+
+        // Preserve existing comments that we are NOT overwriting (e.g. REPLAYGAIN_*, LYRICS)
+        for entry in existingComments {
+            let key = entry.split(separator: "=", maxSplits: 1).first.map { String($0).uppercased() } ?? ""
+            if !overriddenKeys.contains(key) {
+                entries.append(entry)
+            }
+        }
+
         func add(_ key: String, _ value: String?) {
             if let v = value, !v.isEmpty { entries.append("\(key)=\(v)") }
         }
@@ -281,9 +412,13 @@ actor TagWriter {
         guard let idx = commentIdx else { throw TagWriteError.unsupportedFormat }
         let oldPage = pages[idx]
 
+        // Extract existing comments from the old page body (after the magic prefix)
+        let commentData = oldPage.body[oldPage.body.startIndex.advanced(by: commentPrefix.count)...]
+        let existingComments = parseVorbisCommentEntries(from: commentData)
+
         // Build new comment packet body: magic prefix + Vorbis comment encoding
         var newBody = commentPrefix
-        newBody.append(buildVorbisCommentBlock(tags: tags))
+        newBody.append(buildVorbisCommentBlock(tags: tags, preserving: existingComments))
         // Vorbis requires a framing bit (0x01) appended after the comment block
         if commentPrefix == vorbisMagic { newBody.append(0x01) }
 

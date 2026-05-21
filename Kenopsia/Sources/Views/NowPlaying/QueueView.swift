@@ -15,28 +15,33 @@ struct QueueView: View {
                         index: i
                     )
                     .listRowBackground(i == player.queue.currentIndex
-                        ? Color.accentColor.opacity(0.15)
+                        ? Color.accentColor.opacity(0.18)
                         : Color.clear)
                     .onTapGesture {
-                        player.play(tracks: player.queue.tracks, startAt: i)
+                        player.skipTo(index: i)
                     }
                 }
                 .onDelete { player.queue.remove(at: $0) }
-                .onMove { player.queue.tracks.move(fromOffsets: $0, toOffset: $1) }
+                .onMove { player.queue.move(fromOffsets: $0, toOffset: $1) }
             }
             .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+            .background(Color.kBackground.ignoresSafeArea())
             .navigationTitle("Queue")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(Color.kBackground, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     EditButton()
                 }
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Clear") { player.queue.replace(with: []) }
+                    Button("Clear") { player.clearQueue() }
                         .disabled(player.queue.tracks.isEmpty)
                 }
             }
         }
+        .environment(\.colorScheme, .dark)
         .presentationDetents([.medium, .large])
     }
 }

@@ -22,10 +22,26 @@ struct NowPlayingView: View {
                     .padding(.top, 4)
 
                 if showingLyrics {
-                    LyricsView(lines: player.lyrics, position: player.state.positionSeconds)
+                    if player.lyrics.isEmpty {
+                        VStack(spacing: 12) {
+                            Spacer()
+                            Image(systemName: "text.quote")
+                                .font(.system(size: 32))
+                                .foregroundStyle(.white.opacity(0.2))
+                            Text("No lyrics available")
+                                .font(.subheadline)
+                                .foregroundStyle(.white.opacity(0.35))
+                            Spacer()
+                        }
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .onTapGesture { withAnimation(.easeInOut(duration: 0.25)) { showingLyrics = false } }
                         .transition(.opacity)
-                        .padding(.horizontal, 24)
+                    } else {
+                        LyricsView(lines: player.lyrics, position: player.state.positionSeconds)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .transition(.opacity)
+                            .padding(.horizontal, 24)
+                    }
                 } else {
                     artworkDisplay
                 }
@@ -261,7 +277,7 @@ struct NowPlayingView: View {
             }
             Spacer()
             ShareLink(
-                item: player.queue.currentTrack?.title ?? "",
+                item: shareText,
                 subject: Text("Listening to")
             ) {
                 VStack(spacing: 3) {
@@ -279,6 +295,12 @@ struct NowPlayingView: View {
     }
 
     // MARK: - VU animation
+
+    private var shareText: String {
+        guard let track = player.queue.currentTrack else { return "" }
+        if track.artist.isEmpty { return track.title }
+        return "\(track.title) by \(track.artist)"
+    }
 
     private var isAppleMusicTrack: Bool {
         if case .appleMusicID = player.queue.currentTrack?.uri { return true }

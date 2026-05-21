@@ -6,6 +6,8 @@ import Network
 /// Translates a TrackURI into a local URL that AVFoundation can open.
 /// For remote tracks, this may involve downloading or generating a temp auth URL.
 actor SourceResolver {
+    static let shared = SourceResolver()
+
     private var adapters: [MusicSourceID: any MusicSourceAdapter] = [:]
 
     func register(adapter: some MusicSourceAdapter, for sourceID: MusicSourceID) {
@@ -64,6 +66,32 @@ enum SourceError: Error {
     case appleMusicTrack
 }
 
+// MARK: - Lenient TLS delegate (self-signed certificate support)
+/// Accepts TLS certificates from a specific host without verifying the chain.
+/// Only used when the user explicitly enables "Allow self-signed certificate" for a
+/// Subsonic/Navidrome source — intended for home LAN deployments.
+final class LenientTLSDelegate: NSObject, URLSessionDelegate {
+    let trustedHost: String
+
+    init(trustedHost: String) {
+        self.trustedHost = trustedHost
+    }
+
+    func urlSession(
+        _ session: URLSession,
+        didReceive challenge: URLAuthenticationChallenge,
+        completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void
+    ) {
+        guard challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust,
+              challenge.protectionSpace.host == trustedHost,
+              let serverTrust = challenge.protectionSpace.serverTrust else {
+            completionHandler(.performDefaultHandling, nil)
+            return
+        }
+        completionHandler(.useCredential, URLCredential(trust: serverTrust))
+    }
+}
+
 // MARK: - MusicSourceAdapter protocol
 protocol MusicSourceAdapter: Actor {
     var sourceID: MusicSourceID { get }
@@ -84,7 +112,15 @@ actor SubsonicSourceAdapter: MusicSourceAdapter {
     init(sourceID: MusicSourceID, config: SubsonicSourceConfig) {
         self.sourceID = sourceID
         self.config = config
-        self.session = URLSession.shared
+        if config.allowsSelfSignedCertificate,
+           let host = URLComponents(string: config.serverURL)?.host {
+            // Scoped TLS delegate that accepts self-signed certs from the configured
+            // host only. Used for home Navidrome/Subsonic installs on local networks.
+            let delegate = LenientTLSDelegate(trustedHost: host)
+            self.session = URLSession(configuration: .default, delegate: delegate, delegateQueue: nil)
+        } else {
+            self.session = URLSession.shared
+        }
     }
 
     func fetchTracks() async throws -> [Track] {

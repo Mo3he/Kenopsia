@@ -107,6 +107,9 @@ struct SubsonicSourceConfig: Codable, Equatable {
     var serverURL: String       // e.g. "https://music.home.arpa"
     var username: String
     var keychainKey: String     // password / token in Keychain
+    /// Accept self-signed / untrusted TLS certificates from this server.
+    /// Intended for home Navidrome/Subsonic installs on local networks.
+    var allowsSelfSignedCertificate: Bool = false
 }
 
 struct WebRadioSourceConfig: Codable, Equatable {

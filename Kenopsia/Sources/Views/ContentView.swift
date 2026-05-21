@@ -50,12 +50,13 @@ struct ContentView: View {
     // MARK: - iPhone tab bar
     private var iPhoneLayout: some View {
         TabView {
-            LibraryView()
-                .tabItem { Label("Library", systemImage: "music.note.list") }
+            NavigationStack {
+                LibraryView()
+            }
+            .tabItem { Label("Library", systemImage: "music.note.list") }
 
-            SearchView()
-                .environmentObject(search)
-                .tabItem { Label("Search", systemImage: "magnifyingglass") }
+            VibeView()
+                .tabItem { Label("Vibe", systemImage: "waveform.circle.fill") }
 
             SourcesView()
                 .tabItem { Label("Sources", systemImage: "externaldrive") }
@@ -83,7 +84,9 @@ struct ContentView: View {
             SidebarView()
                 .environmentObject(search)
         } content: {
-            LibraryView()
+            NavigationStack {
+                LibraryView()
+            }
         } detail: {
             NowPlayingView()
                 .environmentObject(player)

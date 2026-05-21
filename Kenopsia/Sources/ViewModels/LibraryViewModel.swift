@@ -43,6 +43,20 @@ final class LibraryViewModel: ObservableObject {
             .sorted { $0.name < $1.name }
     }
 
+    var filteredAlbums: [Album] {
+        guard !filterText.isEmpty else { return albums }
+        let q = filterText.lowercased()
+        return albums.filter {
+            $0.title.lowercased().contains(q) || $0.artist.lowercased().contains(q)
+        }
+    }
+
+    var filteredArtists: [Artist] {
+        guard !filterText.isEmpty else { return artists }
+        let q = filterText.lowercased()
+        return artists.filter { $0.name.lowercased().contains(q) }
+    }
+
     var playlists: [Playlist] { Array(store.playlists.values).sorted { $0.name < $1.name } }
 
     /// Source IDs that have at least one track in the library.
@@ -88,8 +102,33 @@ final class LibraryViewModel: ObservableObject {
     func update(track: Track) { store.update(track: track) }
     func delete(trackID: UUID) { store.delete(trackID: trackID) }
 
+    /// Stamps the canonical artwork cache key onto every track in the given album
+    /// so that library rows and the Artwork Fixer both see the artwork immediately.
+    func setArtworkCacheKey(_ key: String, forAlbumID albumID: String) {
+        store.setArtworkCacheKey(key, forAlbumID: albumID)
+    }
+
     func save(playlist: Playlist) { store.save(playlist: playlist) }
     func delete(playlistID: UUID) { store.delete(playlistID: playlistID) }
+
+    /// Add a track to an existing manual playlist.
+    func addTrack(_ trackID: UUID, to playlistID: UUID) {
+        guard var playlist = store.playlists[playlistID],
+              playlist.kind == .manual else { return }
+        guard !playlist.trackIDs.contains(trackID) else { return }
+        playlist.trackIDs.append(trackID)
+        playlist.dateModified = .now
+        store.save(playlist: playlist)
+    }
+
+    /// Remove a track from a manual playlist (without deleting from library).
+    func removeTrack(_ trackID: UUID, from playlistID: UUID) {
+        guard var playlist = store.playlists[playlistID],
+              playlist.kind == .manual else { return }
+        playlist.trackIDs.removeAll { $0 == trackID }
+        playlist.dateModified = .now
+        store.save(playlist: playlist)
+    }
 
     // MARK: - Smart playlists
     func resolve(smartPlaylist: Playlist) -> [Track] {
@@ -164,14 +203,20 @@ enum SmartPlaylistEvaluator {
         case .artist:       return match(string: track.artist, rule: rule)
         case .album:        return match(string: track.album,  rule: rule)
         case .genre:        return match(string: track.genre,  rule: rule)
+        case .acoustID:     return match(string: track.acoustID ?? "", rule: rule)
         case .isLossless:   return matchBool(track.isLossless, rule: rule)
         case .isFavourited: return matchBool(track.isFavourited, rule: rule)
+        case .isExplicit:   return matchBool(track.isExplicit, rule: rule)
         case .playCount:    return matchNumeric(Double(track.playCount), rule: rule)
         case .durationSeconds: return matchNumeric(track.durationSeconds, rule: rule)
         case .dateAdded:    return matchDate(track.dateAdded, rule: rule)
         case .lastPlayed:   return matchDate(track.lastPlayedAt ?? .distantPast, rule: rule)
         case .format:       return match(string: track.format.rawValue, rule: rule)
-        default:            return false
+        case .year:         return matchNumeric(Double(track.year ?? 0), rule: rule)
+        case .bitrateBps:   return matchNumeric(Double(track.bitrateBps ?? 0), rule: rule)
+        case .sampleRateHz: return matchNumeric(Double(track.sampleRateHz ?? 0), rule: rule)
+        case .bpm:          return matchNumeric(track.bpm ?? 0, rule: rule)
+        case .rating:       return matchNumeric(Double(track.rating), rule: rule)
         }
     }
 
@@ -194,6 +239,8 @@ enum SmartPlaylistEvaluator {
         switch rule.condition {
         case .isGreaterThan: return value > threshold
         case .isLessThan:    return value < threshold
+        case .is_:           return value == threshold
+        case .isNot:         return value != threshold
         default:             return false
         }
     }

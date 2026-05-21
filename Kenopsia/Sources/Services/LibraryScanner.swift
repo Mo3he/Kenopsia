@@ -103,6 +103,7 @@ actor LibraryScanner {
             trackNumber:   meta.trackNumber,
             discNumber:    meta.discNumber,
             composer:      meta.composer ?? "",
+            comment:       meta.comment ?? "",
             source:        sourceID,
             uri:           .localFile(path: url.path),
             format:        format,
@@ -114,7 +115,9 @@ actor LibraryScanner {
             channelCount:    meta.channelCount,
             artworkCacheKey: artworkCacheKey,
             replayGainTrack: meta.replayGainTrack,
-            replayGainAlbum: meta.replayGainAlbum
+            replayGainAlbum: meta.replayGainAlbum,
+            isExplicit: meta.isExplicit,
+            bpm: meta.bpm
         )
     }
 
@@ -198,6 +201,7 @@ struct MetadataReader {
         var trackNumber: Int?
         var discNumber: Int?
         var composer: String?
+        var comment: String?
         var duration: Double?
         var bitrateBps: Int?
         var sampleRateHz: Int?
@@ -206,6 +210,8 @@ struct MetadataReader {
         var replayGainTrack: Float?
         var replayGainAlbum: Float?
         var artworkData: Data?
+        var bpm: Double?
+        var isExplicit: Bool = false
     }
 
     func read(url: URL) async -> Metadata {
@@ -227,7 +233,8 @@ struct MetadataReader {
                 case .commonKeyTitle:      meta.title       = value as? String
                 case .commonKeyArtist:     meta.artist      = value as? String
                 case .commonKeyAlbumName:  meta.album       = value as? String
-                case .commonKeyType:       meta.genre       = value as? String
+                // Note: .commonKeyType is the media *type* (Movie, Music…), not genre.
+                // Genre is mapped explicitly from TCON / ©gen below.
                 case .commonKeyArtwork:
                     // Artwork can be returned as Data, NSData, or sometimes a dictionary.
                     // Use dataValue for a reliable binary extraction.
@@ -261,17 +268,26 @@ struct MetadataReader {
                 if let s = value as? String, !s.isEmpty { meta.composer = s }
             // Comment
             case "COMM", "\u{00A9}cmt":
-                if let s = value as? String, !s.isEmpty { /* stored separately if needed */ _ = s }
+                if let s = value as? String, !s.isEmpty { meta.comment = s }
+            // Genre (ID3 TCON or iTunes ©gen — do NOT use commonKeyType which is media type)
+            case "TCON", "\u{00A9}gen":
+                if let s = value as? String, !s.isEmpty { meta.genre = s }
             // Year
             case "TDRC", "TYER", "\u{00A9}day":
                 if let s = value as? String { meta.year = Int(s.prefix(4)) }
+            // BPM (ID3 TBPM or iTunes tmpo)
+            case "TBPM", "tmpo":
+                if let s = value as? String, let d = Double(s) { meta.bpm = d }
+                else if let n = value as? Int { meta.bpm = Double(n) }
+            // Explicit flag: iTunes "rtng" atom; 4 = explicit, 2 = clean, 0 = none
+            case "rtng":
+                if let n = value as? Int { meta.isExplicit = n >= 4 }
+                else if let d = value as? Double { meta.isExplicit = d >= 4 }
             // ReplayGain (stored as TXXX in ID3; key includes description prefix)
             case _ where keyStr.contains("REPLAYGAIN_TRACK_GAIN"):
                 if let s = value as? String { meta.replayGainTrack = Float(s.replacingOccurrences(of: " dB", with: "")) }
             case _ where keyStr.contains("REPLAYGAIN_ALBUM_GAIN"):
                 if let s = value as? String { meta.replayGainAlbum = Float(s.replacingOccurrences(of: " dB", with: "")) }
-            // Bitrate (some containers expose this)
-            case "TBPM": break  // BPM, skip for now
             default: break
             }
         }
@@ -305,20 +321,20 @@ extension AudioFormat {
         switch fileExtension.lowercased() {
         case "flac":                self = .flac
         case "alac", "caf":        self = .alac
-        case "dsd", "dsf", "dff":  self = .dsd
         case "wav":                 self = .wav
         case "aif", "aiff":        self = .aiff
-        // APE and WavPack are not decoded by AVFoundation; exclude them so they
-        // don't appear in the library and fail silently at playback.
+        // APE, WavPack, DSD, OGG, Opus, WMA, MPC are not decoded by AVFoundation
+        // on iOS. Exclude them so they don't appear in the library and fail silently.
         // case "ape":              self = .ape
         // case "wv":               self = .wavpack
+        // case "dsd", "dsf", "dff": self = .dsd
+        // case "ogg":              self = .ogg
+        // case "opus":             self = .opus
+        // case "wma":              self = .wma
+        // case "mpc":              self = .mpc
         case "mp3":                 self = .mp3
         case "aac":                 self = .aac
         case "m4a":                 self = .m4a
-        case "ogg":                 self = .ogg
-        case "opus":                self = .opus
-        case "wma":                 self = .wma
-        case "mpc":                 self = .mpc
         case "mp4":                 self = .mp4
         default:                    return nil
         }

@@ -1,5 +1,24 @@
 import WidgetKit
 import SwiftUI
+import AppIntents
+
+// MARK: - Play/Pause AppIntent
+/// Sends a Darwin notification to the main app to toggle play/pause.
+/// The main app registers for this notification in KenopsiaApp and calls
+/// PlaybackService.shared.togglePlayPause() without bringing itself to the foreground.
+struct TogglePlayPauseIntent: AppIntent {
+    static var title: LocalizedStringResource = "Toggle Play/Pause"
+    static var isDiscoverable: Bool = false
+
+    func perform() async throws -> some IntentResult {
+        CFNotificationCenterPostNotification(
+            CFNotificationCenterGetDarwinNotifyCenter(),
+            CFNotificationName("net.mohome.kenopsia.widget.togglePlayPause" as CFString),
+            nil, nil, true
+        )
+        return .result()
+    }
+}
 
 // MARK: - NowPlayingEntry
 struct NowPlayingEntry: TimelineEntry {
@@ -124,9 +143,12 @@ struct SmallNowPlayingView: View {
                 .font(.caption2)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
-            Image(systemName: entry.isPlaying ? "pause.fill" : "play.fill")
-                .font(.caption)
-                .foregroundStyle(Color.accentColor)
+            Button(intent: TogglePlayPauseIntent()) {
+                Image(systemName: entry.isPlaying ? "pause.fill" : "play.fill")
+                    .font(.caption)
+                    .foregroundStyle(Color.accentColor)
+            }
+            .buttonStyle(.plain)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -155,6 +177,12 @@ struct MediumNowPlayingView: View {
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
                 Spacer()
+                Button(intent: TogglePlayPauseIntent()) {
+                    Image(systemName: entry.isPlaying ? "pause.circle.fill" : "play.circle.fill")
+                        .font(.title2)
+                        .foregroundStyle(Color.accentColor)
+                }
+                .buttonStyle(.plain)
             }
         }
     }

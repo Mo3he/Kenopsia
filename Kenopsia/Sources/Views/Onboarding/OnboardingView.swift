@@ -1,11 +1,12 @@
 import SwiftUI
 
 // MARK: - OnboardingView
-/// Shown on first launch. Walks the user through adding their first source.
+/// Shown on first launch. Walks the user through the app and adding their first source.
 struct OnboardingView: View {
     @EnvironmentObject var sources: SourceViewModel
     @Environment(\.dismiss) var dismiss
     @State private var page = 0
+    @State private var showingAddSource = false
 
     private let pages: [OnboardingPage] = [
         OnboardingPage(
@@ -16,7 +17,7 @@ struct OnboardingView: View {
         OnboardingPage(
             icon: "waveform",
             title: "Zero compromise\naudio.",
-            body: "FLAC, ALAC, DSD, WAV, MP3, AAC — every format, true gapless playback, and a 10-band parametric EQ."
+            body: "FLAC, ALAC, WAV, MP3, AAC — every format, true gapless playback, and a 10-band parametric EQ."
         ),
         OnboardingPage(
             icon: "lock.fill",
@@ -24,6 +25,8 @@ struct OnboardingView: View {
             body: "One-time purchase. Your music stays on your hardware. No account required — ever."
         )
     ]
+
+    private var isLastPage: Bool { page == pages.count - 1 }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -37,11 +40,16 @@ struct OnboardingView: View {
 
             // CTA
             VStack(spacing: 12) {
-                if page == pages.count - 1 {
-                    Button("Get Started") { dismiss() }
-                        .buttonStyle(.borderedProminent)
-                        .controlSize(.large)
-                        .padding(.horizontal, 32)
+                if isLastPage {
+                    Button("Add Your First Source") {
+                        showingAddSource = true
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                    .padding(.horizontal, 32)
+
+                    Button("Skip for now") { dismiss() }
+                        .foregroundStyle(.secondary)
                 } else {
                     Button("Next") { withAnimation { page += 1 } }
                         .buttonStyle(.borderedProminent)
@@ -55,6 +63,19 @@ struct OnboardingView: View {
             .padding(.bottom, 40)
         }
         .interactiveDismissDisabled()
+        .sheet(isPresented: $showingAddSource, onDismiss: { dismiss() }) {
+            NavigationStack {
+                SourcesView()
+                    .environmentObject(sources)
+                    .toolbar {
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("Done") {
+                                showingAddSource = false
+                            }
+                        }
+                    }
+            }
+        }
     }
 }
 

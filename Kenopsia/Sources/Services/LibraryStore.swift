@@ -72,6 +72,18 @@ final class LibraryStore: ObservableObject {
         save()
     }
 
+    /// Updates `artworkCacheKey` on every track that belongs to the given album.
+    /// Called after ArtworkFixer stores art under the canonical key so library
+    /// rows and the Fixer's own scan both find the artwork on the next refresh.
+    func setArtworkCacheKey(_ key: String, forAlbumID albumID: String) {
+        guard let album = albums[albumID] else { return }
+        for trackID in album.trackIDs {
+            tracks[trackID]?.artworkCacheKey = key
+        }
+        rebuildDerivedCollections()
+        save()
+    }
+
     func delete(trackID: UUID) {
         tracks.removeValue(forKey: trackID)
         rebuildDerivedCollections()

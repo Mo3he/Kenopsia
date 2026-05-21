@@ -77,6 +77,17 @@ struct NowPlayingView: View {
             }
         }
         .padding(.horizontal, 8)
+        .overlay(alignment: .top) {
+            if !phone.isPhoneReachable {
+                Text("iPhone not reachable")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.7))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(.black.opacity(0.5), in: Capsule())
+                    .padding(.top, 2)
+            }
+        }
     }
 
     @ViewBuilder

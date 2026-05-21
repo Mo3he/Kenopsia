@@ -53,9 +53,10 @@ struct SmartPlaylistRule: Identifiable, Codable {
 enum SmartPlaylistField: String, Codable, CaseIterable {
     case title, artist, album, genre, year, format
     case playCount, lastPlayed, dateAdded
-    case rating, isFavourited
+    case rating, isFavourited, isExplicit
     case durationSeconds, isLossless
-    case bitrateBps, sampleRateHz
+    case bitrateBps, sampleRateHz, bpm
+    case acoustID
 }
 
 enum SmartPlaylistCondition: String, Codable, CaseIterable {

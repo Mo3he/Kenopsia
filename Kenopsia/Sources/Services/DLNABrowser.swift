@@ -304,6 +304,8 @@ class DLNAResponseParser: NSObject, XMLParserDelegate {
         case "container", "item":
             if !item.title.isEmpty { items.append(item) }
             current = nil
+            // Do NOT fall through to "current = item" below — we just cleared it.
+            return
         default: break
         }
         current = item

@@ -1,6 +1,20 @@
 import SwiftUI
 import WatchConnectivity
 
+// MARK: - Darwin notification callback
+// Global C-compatible function invoked by CFNotificationCenter when the widget's
+// TogglePlayPauseIntent posts "net.mohome.kenopsia.widget.togglePlayPause".
+// Using a top-level function satisfies @convention(c) without capturing context.
+private func widgetPlayPauseCallback(
+    _ center: CFNotificationCenter?,
+    _ observer: UnsafeMutableRawPointer?,
+    _ name: CFNotificationName?,
+    _ object: UnsafeRawPointer?,
+    _ userInfo: CFDictionary?
+) {
+    Task { @MainActor in PlaybackService.shared.togglePlayPause() }
+}
+
 @main
 struct KenopsiaApp: App {
     @StateObject private var player = PlayerViewModel()
@@ -23,6 +37,18 @@ struct KenopsiaApp: App {
                         .interactiveDismissDisabled()
                 }
                 .task { WatchConnectivityService.shared.activate() }
+                .task { registerWidgetNotifications() }
         }
+    }
+
+    private func registerWidgetNotifications() {
+        CFNotificationCenterAddObserver(
+            CFNotificationCenterGetDarwinNotifyCenter(),
+            nil,
+            widgetPlayPauseCallback,
+            "net.mohome.kenopsia.widget.togglePlayPause" as CFString,
+            nil,
+            .deliverImmediately
+        )
     }
 }

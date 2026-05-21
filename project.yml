@@ -37,15 +37,12 @@ targets:
         SUPPORTS_MACCATALYST: "YES"
         INFOPLIST_KEY_UIBackgroundModes: audio
     linkedFrameworks:
-      - CarPlay
     entitlements:
       path: Kenopsia/Kenopsia.entitlements
       properties:
         com.apple.developer.ubiquity-kvstore-identifier: $(TeamIdentifierPrefix)net.mohome.kenopsia
         com.apple.security.application-groups:
           - group.net.mohome.kenopsia
-        com.apple.developer.music-kit: true
-        com.apple.developer.carplay-audio: true
         com.apple.developer.icloud-container-identifiers:
           - iCloud.net.mohome.kenopsia
         com.apple.developer.icloud-services:
@@ -95,15 +92,34 @@ targets:
         TARGETED_DEVICE_FAMILY: "4"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
 
+  KenopsiaTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: KenopsiaTests
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: net.mohome.kenopsia.tests
+        SWIFT_VERSION: 5.10
+        TARGETED_DEVICE_FAMILY: "1,2"
+        GENERATE_INFOPLIST_FILE: "YES"
+    dependencies:
+      - target: Kenopsia
+
 schemes:
   Kenopsia:
     build:
       targets:
         Kenopsia: all
+        KenopsiaWatch: all
+        KenopsiaTests: [test]
     run:
       config: Debug
     test:
       config: Debug
+      targets:
+        - KenopsiaTests
     profile:
       config: Release
     analyze:

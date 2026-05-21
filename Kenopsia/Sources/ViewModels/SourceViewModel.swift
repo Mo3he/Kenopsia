@@ -24,7 +24,7 @@ final class SourceViewModel: ObservableObject {
     // Weak ref to library for scanning — injected after init to avoid circular dependency
     weak var libraryViewModel: LibraryViewModel?
 
-    init(resolver: SourceResolver = SourceResolver()) {
+    init(resolver: SourceResolver = .shared) {
         self.resolver = resolver
         load()
     }
@@ -151,7 +151,8 @@ final class SourceViewModel: ObservableObject {
                     LibraryStore.shared.merge(tracks: tracks, from: source.id)
 
                 case .webRadio(let cfg):
-                    // Web radio stations become individual "tracks" in the library
+                    // Web radio stations become individual "tracks" in the library.
+                    // Always replace — merge would leave removed stations as stale tracks.
                     tracks = cfg.stations.compactMap { station in
                         guard let url = URL(string: station.streamURL) else { return nil }
                         return Track(
@@ -167,6 +168,7 @@ final class SourceViewModel: ObservableObject {
                         )
                     }
                     try Task.checkCancellation()
+                    LibraryStore.shared.removeTracks(from: source.id)  // prune removed stations
                     LibraryStore.shared.merge(tracks: tracks, from: source.id)
 
                 case .cloud:
@@ -367,12 +369,18 @@ final class SourceViewModel: ObservableObject {
             var ptr = ifaddr
             while let ifa = ptr?.pointee {
                 defer { ptr = ifa.ifa_next }
+                let name = String(cString: ifa.ifa_name)
+                // Accept any IPv4 interface that is not the loopback adapter.
+                // This covers en0 (Wi-Fi), en1 (Ethernet/USB), bridge0, etc.
                 guard ifa.ifa_addr.pointee.sa_family == UInt8(AF_INET),
-                      String(cString: ifa.ifa_name) == "en0" else { continue }
+                      name != "lo0" else { continue }
                 var hostname = [CChar](repeating: 0, count: Int(NI_MAXHOST))
                 getnameinfo(ifa.ifa_addr, socklen_t(ifa.ifa_addr.pointee.sa_len),
                             &hostname, socklen_t(hostname.count), nil, 0, NI_NUMERICHOST)
                 address = String(cString: hostname)
+                // Prefer en0/en1 over bridge/virtual interfaces but don't abort early;
+                // keep iterating so the last non-loopback address wins if nothing else matches.
+                if name.hasPrefix("en") { break }
             }
             freeifaddrs(ifaddr)
         }

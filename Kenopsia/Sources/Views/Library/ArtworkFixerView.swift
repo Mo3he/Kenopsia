@@ -92,10 +92,14 @@ struct ArtworkFixerView: View {
             .onChange(of: photoPickerItem) {
                 if let item = photoPickerItem {
                     Task {
-                        if let data = try? await item.loadTransferable(type: Data.self),
-                           let key = album.artworkCacheKey {
+                        if let data = try? await item.loadTransferable(type: Data.self) {
+                            // Derive the canonical key (same one library rows use).
+                            let key = album.artworkCacheKey
+                                ?? ArtworkFetchService.generateCacheKey(artist: album.artist, album: album.title)
                             ArtworkCache.shared.store(imageData: data, forKey: key)
-                            await scan()   // refresh problem list
+                            // Propagate to all tracks so the fix registers on next scan.
+                            library.setArtworkCacheKey(key, forAlbumID: album.id)
+                            await scan()
                         }
                         photoPickerItem = nil
                     }
@@ -141,8 +145,13 @@ struct ArtworkFixerView: View {
     // MARK: - Fix
     private func autoFix(problem: ArtworkProblem) async {
         let album = problem.album
-        let key = album.artworkCacheKey ?? album.id
+        // Use the canonical key (same one ArtworkFetchService and library rows use)
+        // instead of album.id, which nothing else looks up.
+        let key = album.artworkCacheKey
+            ?? ArtworkFetchService.generateCacheKey(artist: album.artist, album: album.title)
         await ArtworkFetchService.shared.fetch(artist: album.artist, album: album.title, cacheKey: key)
+        // Stamp the key on every track in the album so the artwork is visible immediately.
+        library.setArtworkCacheKey(key, forAlbumID: album.id)
         await scan()
     }
 

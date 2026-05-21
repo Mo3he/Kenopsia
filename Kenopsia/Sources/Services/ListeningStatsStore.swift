@@ -7,6 +7,8 @@ import CryptoKit
 /// are always recorded regardless of network availability.
 @MainActor
 final class ListeningStatsStore: ObservableObject {
+    static let shared = ListeningStatsStore()
+
     @Published private(set) var recentlyPlayed: [PlayEvent] = []
 
     private let defaults = UserDefaults(suiteName: "group.net.mohome.kenopsia")

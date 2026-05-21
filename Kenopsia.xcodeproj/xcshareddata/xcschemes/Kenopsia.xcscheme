@@ -21,6 +21,34 @@
                ReferencedContainer = "container:Kenopsia.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "NO"
+            buildForProfiling = "NO"
+            buildForArchiving = "NO"
+            buildForAnalyzing = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "04697484DF48FA50C44330E3"
+               BuildableName = "KenopsiaTests.xctest"
+               BlueprintName = "KenopsiaTests"
+               ReferencedContainer = "container:Kenopsia.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "8E7F0BF35C771CD745C6FF17"
+               BuildableName = "KenopsiaWatch.app"
+               BlueprintName = "KenopsiaWatch"
+               ReferencedContainer = "container:Kenopsia.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction
@@ -39,6 +67,17 @@
          </BuildableReference>
       </MacroExpansion>
       <Testables>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "04697484DF48FA50C44330E3"
+               BuildableName = "KenopsiaTests.xctest"
+               BlueprintName = "KenopsiaTests"
+               ReferencedContainer = "container:Kenopsia.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
       <CommandLineArguments>
       </CommandLineArguments>

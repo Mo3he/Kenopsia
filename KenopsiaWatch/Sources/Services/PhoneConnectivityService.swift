@@ -16,6 +16,7 @@ final class PhoneConnectivityService: NSObject, ObservableObject {
     @Published var artist: String = ""
     @Published var album: String = ""
     @Published var artworkData: Data? = nil
+    @Published var isPhoneReachable: Bool = false
 
     var isPlaying: Bool { status == "playing" }
     var progress: Double {
@@ -33,7 +34,10 @@ final class PhoneConnectivityService: NSObject, ObservableObject {
     // MARK: - Commands
 
     func sendCommand(_ command: String, extras: [String: Any] = [:]) {
-        guard WCSession.default.isReachable else { return }
+        guard WCSession.default.isReachable else {
+            isPhoneReachable = false
+            return
+        }
         var msg = extras
         msg["command"] = command
         WCSession.default.sendMessage(msg, replyHandler: nil)
@@ -72,8 +76,11 @@ extension PhoneConnectivityService: WCSessionDelegate {
         Task { @MainActor in
             let ctx = WCSession.default.receivedApplicationContext
             if !ctx.isEmpty { self.apply(context: ctx) }
+            self.isPhoneReachable = WCSession.default.isReachable
         }
     }
 
-    nonisolated func sessionReachabilityDidChange(_ session: WCSession) {}
+    nonisolated func sessionReachabilityDidChange(_ session: WCSession) {
+        Task { @MainActor in self.isPhoneReachable = session.isReachable }
+    }
 }

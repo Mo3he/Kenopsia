@@ -109,7 +109,7 @@ struct LastFmSettingsView: View {
     @State private var connectedUser = ""
     @State private var isLoading = false
     @State private var errorMessage: String?
-    private let stats = ListeningStatsStore()
+    private let stats = ListeningStatsStore.shared
 
     var body: some View {
         Form {
@@ -193,7 +193,7 @@ struct ListenBrainzSettingsView: View {
     @State private var isConnected = false
     @State private var isLoading = false
     @State private var errorMessage: String?
-    private let stats = ListeningStatsStore()
+    private let stats = ListeningStatsStore.shared
 
     var body: some View {
         Form {
@@ -290,6 +290,9 @@ struct SidebarView: View {
         List {
             NavigationLink(destination: LibraryView()) {
                 Label("Library", systemImage: "music.note.list")
+            }
+            NavigationLink(destination: VibeView()) {
+                Label("Vibe", systemImage: "waveform.circle.fill")
             }
             NavigationLink(destination: SearchView().environmentObject(search)) {
                 Label("Search", systemImage: "magnifyingglass")

@@ -121,6 +121,24 @@ struct AlbumEditorView: View {
             library.update(track: track)
         }
 
+        // Write metadata to local files so edits survive a rescan.
+        let updatedTracks = tracks.compactMap { library.track(for: $0.id) }
+        Task {
+            let writer = TagWriter()
+            for track in updatedTracks {
+                guard case .localFile(let path) = track.uri else { continue }
+                let url = URL(fileURLWithPath: path)
+                var tags = TrackTags(track: track)
+                // Only write the fields this editor controls; preserve the rest.
+                if !title.isEmpty  { tags.album = title }
+                if !artist.isEmpty { tags.albumArtist = artist }
+                tags.year = yearInt ?? track.year
+                if !genre.isEmpty  { tags.genre = genre }
+                tags.artworkData = pendingArtworkData   // nil = preserve existing artwork
+                try? await writer.write(tags: tags, to: url)
+            }
+        }
+
         dismiss()
     }
 }

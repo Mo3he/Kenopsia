@@ -228,6 +228,18 @@ struct SourceDetailView: View {
                     .autocorrectionDisabled().textInputAutocapitalization(.never)
                 SecureField("Password", text: subsonicPasswordBinding)
             }
+            Section("Security") {
+                Toggle(isOn: Binding(
+                    get: { guard case .subsonic(let c) = source.config else { return false }; return c.allowsSelfSignedCertificate },
+                    set: { v in guard case .subsonic(var c) = source.config else { return }; c.allowsSelfSignedCertificate = v; source.config = .subsonic(c) }
+                )) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Allow self-signed certificate")
+                        Text("Enable for home Navidrome/Subsonic servers with untrusted TLS certificates.")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+            }
         case .nas:
             Section("Connection") {
                 TextField("192.168.1.100 or hostname (leave blank to auto-discover)", text: nasHostBinding)
