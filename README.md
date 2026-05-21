@@ -20,6 +20,12 @@ A powerful, source-agnostic music player for iPhone, iPad, Apple Watch, and CarP
 - CarPlay — Now Playing and library browse (Albums, Playlists, Songs)
 - Apple Watch companion — Now Playing controls via WatchConnectivity
 
+## Supported Formats
+
+MP3, AAC, M4A/ALAC, FLAC, WAV, AIFF, MP4
+
+> DSD, Ogg Vorbis, Opus, WMA, and Musepack are not supported — AVFoundation does not decode them on iOS.
+
 ## Privacy
 
 [Privacy Policy](https://mo3he.github.io/Kenopsia/privacy)
