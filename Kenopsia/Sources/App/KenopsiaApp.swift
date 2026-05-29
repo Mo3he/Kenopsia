@@ -37,7 +37,13 @@ struct KenopsiaApp: App {
                 .environmentObject(library)
                 .environmentObject(sources)
                 .sheet(isPresented: Binding(
-                    get: { !hasLaunchedBefore && !DemoDataProvider.isActive },
+                    get: {
+                        #if DEBUG
+                        return !hasLaunchedBefore && !DemoDataProvider.isActive
+                        #else
+                        return !hasLaunchedBefore
+                        #endif
+                    },
                     set: { if !$0 { hasLaunchedBefore = true } }
                 )) {
                     OnboardingView()
@@ -53,10 +59,12 @@ struct KenopsiaApp: App {
 
     @MainActor
     private func activateDemoModeIfNeeded() async {
+#if DEBUG
         guard DemoDataProvider.isActive else { return }
         // Brief yield so the SwiftUI layout pass completes before we inject data.
         try? await Task.sleep(for: .milliseconds(300))
         DemoDataProvider.load()
+#endif
     }
 
     private func registerWidgetNotifications() {

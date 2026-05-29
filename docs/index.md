@@ -1,9 +1,9 @@
 ---
 layout: default
-title: Loudmouth
+title: Kenopsia
 ---
 
-# Loudmouth
+# Kenopsia
 
 A powerful, source-agnostic music player for iPhone and iPad.
 

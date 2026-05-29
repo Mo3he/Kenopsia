@@ -196,7 +196,7 @@ struct SourceDetailView: View {
         .fileImporter(isPresented: $showingFilePicker, allowedContentTypes: [.folder], allowsMultipleSelection: false) { result in
             guard case .success(let urls) = result, let url = urls.first else { return }
             _ = url.startAccessingSecurityScopedResource()
-            if let bookmark = try? url.bookmarkData(options: [], includingResourceValuesForKeys: nil, relativeTo: nil) {
+            if let bookmark = try? url.bookmarkData(options: .minimalBookmark, includingResourceValuesForKeys: nil, relativeTo: nil) {
                 source.config = .local(LocalSourceConfig(bookmarkData: bookmark))
                 sources.update(source: source)
             }
@@ -404,97 +404,10 @@ struct AddRadioStationView: View {
     }
 }
 
-// MARK: - FolderPickerStore
-/// Shared state for folder picking, lifted to AddSourceView so it can be
-/// injected down to AddSourceConfigView via EnvironmentObject.
-@MainActor
-private final class FolderPickerStore: ObservableObject {
-    @Published var showingLocal = false
-    @Published var showingSMB = false
-    @Published var localBookmark: Data? = nil
-    @Published var localFolderName = ""
-    @Published var nasBookmark: Data? = nil
-    @Published var nasFolderName = ""
-}
-
-// MARK: - FolderPickerBridge
-/// UIKit bridge that presents UIDocumentPickerViewController from the topmost
-/// view controller. SwiftUI's .fileImporter silently fails when nested inside
-/// a NavigationStack inside a sheet — this bypasses that entirely.
-private struct FolderPickerBridge: UIViewControllerRepresentable {
-    @Binding var isPresented: Bool
-    let onPick: (URL) -> Void
-
-    func makeCoordinator() -> Coordinator { Coordinator(parent: self) }
-    func makeUIViewController(context: Context) -> UIViewController { UIViewController() }
-
-    func updateUIViewController(_ vc: UIViewController, context: Context) {
-        guard isPresented, context.coordinator.picker == nil else { return }
-        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.folder])
-        picker.allowsMultipleSelection = false
-        picker.delegate = context.coordinator
-        context.coordinator.picker = picker
-        // Present from the topmost UIKit VC to avoid SwiftUI sheet restrictions.
-        let topVC = UIApplication.shared.connectedScenes
-            .compactMap { $0 as? UIWindowScene }
-            .flatMap { $0.windows }
-            .first { $0.isKeyWindow }?
-            .rootViewController?
-            .topmostPresented
-        topVC?.present(picker, animated: true)
-    }
-
-    final class Coordinator: NSObject, UIDocumentPickerDelegate {
-        var parent: FolderPickerBridge
-        var picker: UIDocumentPickerViewController?
-        init(parent: FolderPickerBridge) { self.parent = parent }
-
-        func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
-            picker = nil
-            parent.isPresented = false
-            guard let url = urls.first else { return }
-            _ = url.startAccessingSecurityScopedResource()
-            parent.onPick(url)
-        }
-
-        func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
-            picker = nil
-            parent.isPresented = false
-        }
-    }
-}
-
-private extension UIViewController {
-    var topmostPresented: UIViewController {
-        presentedViewController?.topmostPresented ?? self
-    }
-}
-
 // MARK: - AddSourceView  (step 1 wrapper)
 struct AddSourceView: View {
-    @StateObject private var pickerStore = FolderPickerStore()
-
     var body: some View {
         NavigationStack { SourceTypePickerView() }
-            .environmentObject(pickerStore)
-            .background(
-                Group {
-                    FolderPickerBridge(isPresented: $pickerStore.showingLocal) { url in
-                        pickerStore.localFolderName = url.lastPathComponent
-                        pickerStore.localBookmark = try? url.bookmarkData(
-                            options: [], includingResourceValuesForKeys: nil, relativeTo: nil
-                        )
-                        url.stopAccessingSecurityScopedResource()
-                    }
-                    FolderPickerBridge(isPresented: $pickerStore.showingSMB) { url in
-                        pickerStore.nasFolderName = url.lastPathComponent
-                        pickerStore.nasBookmark = try? url.bookmarkData(
-                            options: [], includingResourceValuesForKeys: nil, relativeTo: nil
-                        )
-                        url.stopAccessingSecurityScopedResource()
-                    }
-                }
-            )
     }
 }
 
@@ -555,9 +468,10 @@ struct AddSourceConfigView: View {
 
     @State private var displayName = ""
 
-    @EnvironmentObject private var pickerStore: FolderPickerStore
-
     // Local
+    @State private var showingFolderPicker = false
+    @State private var localBookmark: Data?
+    @State private var localFolderName = ""
     @State private var watchForChanges = true
 
     // Subsonic
@@ -571,7 +485,9 @@ struct AddSourceConfigView: View {
     @State private var nasProtocol: NASSourceConfig.NASProtocol = .dlna
     @State private var nasDiscoveredServers: [URL] = []
     @State private var isDiscovering = false
-
+    @State private var nasBookmark: Data? = nil
+    @State private var nasFolderName = ""
+    @State private var showingSMBFolderPicker = false
 
     // Cloud
     @State private var cloudProvider: CloudProvider = .iCloud
@@ -604,6 +520,32 @@ struct AddSourceConfigView: View {
         }
         .navigationTitle("Configure")
         .navigationBarTitleDisplayMode(.inline)
+        .fileImporter(
+            isPresented: $showingFolderPicker,
+            allowedContentTypes: [.folder],
+            allowsMultipleSelection: false
+        ) { result in
+            guard case .success(let urls) = result, let url = urls.first else { return }
+            _ = url.startAccessingSecurityScopedResource()
+            localFolderName = url.lastPathComponent
+            localBookmark = try? url.bookmarkData(
+                options: .minimalBookmark, includingResourceValuesForKeys: nil, relativeTo: nil
+            )
+            url.stopAccessingSecurityScopedResource()
+        }
+        .fileImporter(
+            isPresented: $showingSMBFolderPicker,
+            allowedContentTypes: [.folder],
+            allowsMultipleSelection: false
+        ) { result in
+            guard case .success(let urls) = result, let url = urls.first else { return }
+            _ = url.startAccessingSecurityScopedResource()
+            nasFolderName = url.lastPathComponent
+            nasBookmark = try? url.bookmarkData(
+                options: .minimalBookmark, includingResourceValuesForKeys: nil, relativeTo: nil
+            )
+            url.stopAccessingSecurityScopedResource()
+        }
     }
 
     @ViewBuilder
@@ -611,12 +553,12 @@ struct AddSourceConfigView: View {
         switch kind {
         case .local:
             Section("Folder") {
-                if pickerStore.localBookmark != nil {
-                    Label(pickerStore.localFolderName.isEmpty ? "Folder selected" : pickerStore.localFolderName,
+                if localBookmark != nil {
+                    Label(localFolderName.isEmpty ? "Folder selected" : localFolderName,
                           systemImage: "checkmark.circle.fill").foregroundStyle(.green)
                 }
-                Button(pickerStore.localBookmark == nil ? "Choose Folder" : "Change Folder") {
-                    pickerStore.showingLocal = true
+                Button(localBookmark == nil ? "Choose Folder" : "Change Folder") {
+                    showingFolderPicker = true
                 }
                 Toggle("Watch for Changes", isOn: $watchForChanges)
             }
@@ -690,12 +632,12 @@ struct AddSourceConfigView: View {
                 }
             } else {
                 Section {
-                    if pickerStore.nasBookmark != nil {
-                        Label(pickerStore.nasFolderName.isEmpty ? "Folder selected" : pickerStore.nasFolderName,
+                    if nasBookmark != nil {
+                        Label(nasFolderName.isEmpty ? "Folder selected" : nasFolderName,
                               systemImage: "checkmark.circle.fill").foregroundStyle(.green)
                     }
-                    Button(pickerStore.nasBookmark == nil ? "Choose Folder" : "Change Folder") {
-                        pickerStore.showingSMB = true
+                    Button(nasBookmark == nil ? "Choose Folder" : "Change Folder") {
+                        showingSMBFolderPicker = true
                     }
                 } header: {
                     Text("Music Folder")
@@ -784,12 +726,12 @@ struct AddSourceConfigView: View {
 
     private var isValid: Bool {
         switch kind {
-        case .local:        return pickerStore.localBookmark != nil
+        case .local:        return localBookmark != nil
         case .subsonic:     return !subURL.isEmpty && !subUsername.isEmpty && !subPassword.isEmpty
         case .nas:
             switch nasProtocol {
             case .dlna: return true   // host is optional — SSDP discovers if left empty
-            case .smb:  return pickerStore.nasBookmark != nil
+            case .smb:  return nasBookmark != nil
             }
         case .webRadio, .wifiTransfer, .appleMusic: return true
         case .cloud:
@@ -805,7 +747,7 @@ struct AddSourceConfigView: View {
         let config: MusicSourceConfig
         switch kind {
         case .local:
-            config = .local(LocalSourceConfig(bookmarkData: pickerStore.localBookmark, watchForChanges: watchForChanges))
+            config = .local(LocalSourceConfig(bookmarkData: localBookmark, watchForChanges: watchForChanges))
         case .subsonic:
             let key = "sub_\(UUID().uuidString)"
             try? KeychainHelper.shared.save(key: key, value: subPassword)
@@ -820,8 +762,8 @@ struct AddSourceConfigView: View {
             nasCfg.port = nasPort
             nasCfg.protocol_ = nasProtocol
             if nasProtocol == .smb {
-                nasCfg.smbBookmarkData = pickerStore.nasBookmark
-                nasCfg.smbFolderName = pickerStore.nasFolderName
+                nasCfg.smbBookmarkData = nasBookmark
+                nasCfg.smbFolderName = nasFolderName
             }
             config = .nas(nasCfg)
         case .webRadio:
@@ -1170,7 +1112,7 @@ struct SMBFolderPickerSection: View {
             _ = url.startAccessingSecurityScopedResource()
             let name = url.lastPathComponent
             let bookmark = try? url.bookmarkData(
-                options: [], includingResourceValuesForKeys: nil, relativeTo: nil
+                options: .minimalBookmark, includingResourceValuesForKeys: nil, relativeTo: nil
             )
             url.stopAccessingSecurityScopedResource()
             guard case .nas(var c) = source.config else { return }

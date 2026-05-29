@@ -40,7 +40,7 @@ final class ChromecastService: NSObject, ObservableObject {
 #if canImport(GoogleCast)
         let criteria = GCKDiscoveryCriteria(applicationID: kGCKDefaultMediaReceiverApplicationID)
         let options = GCKCastOptions(discoveryCriteria: criteria)
-        options.suspendSessionsWhenBackgrounded = true
+        options.suspendSessionsWhenBackgrounded = false
         GCKCastContext.setSharedInstanceWith(options)
         GCKCastContext.sharedInstance().useDefaultExpandedMediaControls = false
 #endif
@@ -101,14 +101,12 @@ final class ChromecastService: NSObject, ObservableObject {
 #if canImport(GoogleCast)
         remoteClient?.pause()
 #endif
-        stopPositionTimer()
     }
 
     func resume() {
 #if canImport(GoogleCast)
         remoteClient?.play()
 #endif
-        startPositionTimer()
     }
 
     func stop() {

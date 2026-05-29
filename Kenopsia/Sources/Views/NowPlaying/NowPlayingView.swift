@@ -273,7 +273,7 @@ struct NowPlayingView: View {
                 )
                 .tint(accent)
                 .frame(height: 28)
-            } else if DemoDataProvider.isActive {
+            } else if isInDemoMode {
                 // MPVolumeView is always blank on the simulator; show a static fake slider.
                 Slider(value: .constant(0.72))
                     .tint(accent)
@@ -364,6 +364,14 @@ struct NowPlayingView: View {
         guard let track = player.queue.currentTrack else { return "" }
         if track.artist.isEmpty { return track.title }
         return "\(track.title) by \(track.artist)"
+    }
+
+    private var isInDemoMode: Bool {
+        #if DEBUG
+        return DemoDataProvider.isActive
+        #else
+        return false
+        #endif
     }
 
     private var isAppleMusicTrack: Bool {

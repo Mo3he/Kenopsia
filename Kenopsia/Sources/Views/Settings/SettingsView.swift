@@ -86,9 +86,6 @@ struct SettingsView: View {
 
                 Section("About") {
                     LabeledContent("Version", value: appVersion)
-                    Link(destination: URL(string: "https://buymeacoffee.com/Mo3he")!) {
-                        Label("Buy Me a Coffee", systemImage: "cup.and.heat.waves.fill")
-                    }
                     Link(destination: URL(string: "mailto:feedback@mohome.net")!) {
                         Label("Send Feedback", systemImage: "envelope")
                             .foregroundStyle(.primary)

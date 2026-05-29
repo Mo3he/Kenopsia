@@ -1,3 +1,4 @@
+#if DEBUG
 import Foundation
 import UIKit
 
@@ -19,11 +20,7 @@ enum DemoDataProvider {
 
     // MARK: - Detection
     static var isActive: Bool {
-#if DEBUG
         ProcessInfo.processInfo.arguments.contains("--demo-mode")
-#else
-        false
-#endif
     }
 
     // MARK: - Fixed IDs (stable across screenshot runs)
@@ -577,7 +574,6 @@ enum DemoDataProvider {
     /// Merges demo tracks into the shared LibraryStore and configures a static
     /// "paused" playback state so every view renders as if music is loaded.
     static func load() {
-#if DEBUG
         let tracks = demoTracks
 
         injectDemoArtwork()
@@ -606,7 +602,6 @@ enum DemoDataProvider {
         demoQueue.replace(with: tracks, startAt: nowPlayingIdx)
 
         PlaybackService.shared.setDemoState(demoState, queue: demoQueue)
-#endif
     }
 
     // MARK: - Artwork injection
@@ -676,4 +671,5 @@ enum DemoDataProvider {
         }
     }
 }
+#endif
 

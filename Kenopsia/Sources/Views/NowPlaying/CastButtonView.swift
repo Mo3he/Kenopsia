@@ -11,7 +11,7 @@ import GoogleCast
 ///   leaving the button invisible.
 /// - GCKCastContext.presentCastDialog() walks from the KEY WINDOW root VC, so
 ///   when called directly the dialog lands BEHIND the NowPlaying sheet.
-/// - GCKUICastButton's default tap handler walks the RESPONDER CHAIN instead,
+/// - GCKUICastButton.triggersDefaultCastDialog walks the RESPONDER CHAIN instead,
 ///   finding CastButtonHostVC (which is inside the sheet) as the presenting VC,
 ///   so the dialog correctly appears on top.
 ///
@@ -41,8 +41,7 @@ final class CastButtonHostVC: UIViewController {
         view.backgroundColor = .clear
 
         // Proxy: in the hierarchy so responder chain reaches this VC.
-        // GCKUICastButton's default tap action presents the dialog using the
-        // responder chain (its default behavior — no configuration needed).
+        proxyButton.triggersDefaultCastDialog = true
         proxyButton.isAccessibilityElement = false
         view.addSubview(proxyButton)
 
