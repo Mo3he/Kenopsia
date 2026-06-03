@@ -34,10 +34,9 @@ final class PhoneConnectivityService: NSObject, ObservableObject {
     // MARK: - Commands
 
     func sendCommand(_ command: String, extras: [String: Any] = [:]) {
-        guard WCSession.default.isReachable else {
-            isPhoneReachable = false
-            return
-        }
+        let reachable = WCSession.default.isReachable
+        isPhoneReachable = reachable
+        guard reachable else { return }
         var msg = extras
         msg["command"] = command
         WCSession.default.sendMessage(msg, replyHandler: nil)
@@ -76,7 +75,22 @@ extension PhoneConnectivityService: WCSessionDelegate {
         _ session: WCSession,
         didReceiveApplicationContext applicationContext: [String: Any]
     ) {
-        Task { @MainActor in self.apply(context: applicationContext) }
+        Task { @MainActor in
+            self.apply(context: applicationContext)
+            // Any inbound payload proves the iPhone app is alive and talking
+            // to us, even if WCSession.isReachable hasn't yet flipped to true.
+            self.isPhoneReachable = true
+        }
+    }
+
+    nonisolated func session(
+        _ session: WCSession,
+        didReceiveMessage message: [String: Any]
+    ) {
+        Task { @MainActor in
+            self.apply(context: message)
+            self.isPhoneReachable = true
+        }
     }
 
     nonisolated func session(

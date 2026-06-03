@@ -98,6 +98,21 @@ final class LibraryStore: ObservableObject {
         NotificationCenter.default.post(name: .libraryDidChange, object: nil)
     }
 
+    /// Removes tracks from the given source whose `uri.stableKey` is not in `keepingURIKeys`.
+    /// Used after a rescan to drop entries for files that no longer exist at the source.
+    /// Returns the tracks that were removed so callers can clean up related state
+    /// (e.g. evict offline cached files).
+    @discardableResult
+    func pruneTracks(from sourceID: MusicSourceID, keepingURIKeys keep: Set<String>) -> [Track] {
+        let removed = tracks.values.filter { $0.source == sourceID && !keep.contains($0.uri.stableKey) }
+        guard !removed.isEmpty else { return [] }
+        for track in removed { tracks.removeValue(forKey: track.id) }
+        rebuildDerivedCollections()
+        save()
+        NotificationCenter.default.post(name: .libraryDidChange, object: nil)
+        return removed
+    }
+
     func save(playlist: Playlist) {
         playlists[playlist.id] = playlist
         save()

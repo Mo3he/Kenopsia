@@ -199,6 +199,10 @@ struct SourceDetailView: View {
             if let bookmark = try? url.bookmarkData(options: .minimalBookmark, includingResourceValuesForKeys: nil, relativeTo: nil) {
                 source.config = .local(LocalSourceConfig(bookmarkData: bookmark))
                 sources.update(source: source)
+                isScanningNow = true
+                sources.scan(source: source) { result in
+                    isScanningNow = false; scanResult = result
+                }
             }
             url.stopAccessingSecurityScopedResource()
         }
@@ -468,8 +472,16 @@ struct AddSourceConfigView: View {
 
     @State private var displayName = ""
 
+    // Folder picker dispatch (a single .fileImporter handles both kinds;
+    // stacking two .fileImporter modifiers on the same view causes one to be
+    // silently ignored by SwiftUI).
+    private enum FolderPickerTarget: Identifiable {
+        case local, smb
+        var id: Int { self == .local ? 0 : 1 }
+    }
+    @State private var folderPickerTarget: FolderPickerTarget?
+
     // Local
-    @State private var showingFolderPicker = false
     @State private var localBookmark: Data?
     @State private var localFolderName = ""
     @State private var watchForChanges = true
@@ -487,7 +499,6 @@ struct AddSourceConfigView: View {
     @State private var isDiscovering = false
     @State private var nasBookmark: Data? = nil
     @State private var nasFolderName = ""
-    @State private var showingSMBFolderPicker = false
 
     // Cloud
     @State private var cloudProvider: CloudProvider = .iCloud
@@ -521,29 +532,30 @@ struct AddSourceConfigView: View {
         .navigationTitle("Configure")
         .navigationBarTitleDisplayMode(.inline)
         .fileImporter(
-            isPresented: $showingFolderPicker,
+            isPresented: Binding(
+                get: { folderPickerTarget != nil },
+                set: { if !$0 { folderPickerTarget = nil } }
+            ),
             allowedContentTypes: [.folder],
             allowsMultipleSelection: false
         ) { result in
+            let target = folderPickerTarget
+            folderPickerTarget = nil
             guard case .success(let urls) = result, let url = urls.first else { return }
             _ = url.startAccessingSecurityScopedResource()
-            localFolderName = url.lastPathComponent
-            localBookmark = try? url.bookmarkData(
+            let bookmark = try? url.bookmarkData(
                 options: .minimalBookmark, includingResourceValuesForKeys: nil, relativeTo: nil
             )
-            url.stopAccessingSecurityScopedResource()
-        }
-        .fileImporter(
-            isPresented: $showingSMBFolderPicker,
-            allowedContentTypes: [.folder],
-            allowsMultipleSelection: false
-        ) { result in
-            guard case .success(let urls) = result, let url = urls.first else { return }
-            _ = url.startAccessingSecurityScopedResource()
-            nasFolderName = url.lastPathComponent
-            nasBookmark = try? url.bookmarkData(
-                options: .minimalBookmark, includingResourceValuesForKeys: nil, relativeTo: nil
-            )
+            switch target {
+            case .local:
+                localFolderName = url.lastPathComponent
+                localBookmark = bookmark
+            case .smb:
+                nasFolderName = url.lastPathComponent
+                nasBookmark = bookmark
+            case .none:
+                break
+            }
             url.stopAccessingSecurityScopedResource()
         }
     }
@@ -558,7 +570,7 @@ struct AddSourceConfigView: View {
                           systemImage: "checkmark.circle.fill").foregroundStyle(.green)
                 }
                 Button(localBookmark == nil ? "Choose Folder" : "Change Folder") {
-                    showingFolderPicker = true
+                    folderPickerTarget = .local
                 }
                 Toggle("Watch for Changes", isOn: $watchForChanges)
             }
@@ -637,7 +649,7 @@ struct AddSourceConfigView: View {
                               systemImage: "checkmark.circle.fill").foregroundStyle(.green)
                     }
                     Button(nasBookmark == nil ? "Choose Folder" : "Change Folder") {
-                        showingSMBFolderPicker = true
+                        folderPickerTarget = .smb
                     }
                 } header: {
                     Text("Music Folder")

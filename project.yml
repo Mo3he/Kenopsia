@@ -69,6 +69,7 @@ targets:
           - iCloud.net.mohome.kenopsia
         com.apple.developer.icloud-services:
           - CloudDocuments
+        com.apple.developer.carplay-audio: true
     dependencies:
       - target: KenopsiaWidget
         embed: true

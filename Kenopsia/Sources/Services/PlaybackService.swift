@@ -211,6 +211,7 @@ final class PlaybackService: ObservableObject {
         stopPositionTimer()
         state.status = .stopped
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
+        MPNowPlayingInfoCenter.default().playbackState = .stopped
         writeStateToAppGroupNow()
     }
 
@@ -1118,6 +1119,10 @@ final class PlaybackService: ObservableObject {
 
     // MARK: - Now Playing Info Center
     private func updateNowPlayingInfo(track: Track, artworkKey: String? = nil) {
+        // Append to recents the first time we see this track. recordStarted dedupes
+        // against the head of the list, so artwork-update re-calls are no-ops.
+        statsStore.recordStarted(track)
+
         var info: [String: Any] = [
             MPMediaItemPropertyTitle:            track.title,
             MPMediaItemPropertyArtist:           track.artist,
@@ -1128,11 +1133,39 @@ final class PlaybackService: ObservableObject {
             MPMediaItemPropertyMediaType: MPMediaType.music.rawValue
         ]
         let resolvedKey = artworkKey ?? track.artworkCacheKey
-        if let key = resolvedKey,
-           let image = artworkCache.gridImage(forKey: key) {
-            info[MPMediaItemPropertyArtwork] = MPMediaItemArtwork(boundsSize: image.size) { _ in image }
+        if let key = resolvedKey {
+            // Prefer the full-resolution image for CarPlay / lock screen / Now Playing widget;
+            // fall back to grid (300 px) if the full size hasn't been generated yet.
+            let largest = artworkCache.fullImage(forKey: key) ?? artworkCache.gridImage(forKey: key)
+            if let largest {
+                let cache = artworkCache
+                info[MPMediaItemPropertyArtwork] = MPMediaItemArtwork(boundsSize: largest.size) { requested in
+                    // Return the smallest cached size that satisfies the request to save memory.
+                    if max(requested.width, requested.height) <= 64,
+                       let thumb = cache.thumbnailImage(forKey: key) { return thumb }
+                    if max(requested.width, requested.height) <= 300,
+                       let grid = cache.gridImage(forKey: key) { return grid }
+                    return largest
+                }
+            }
         }
+        if let albumArtist = Optional(track.albumArtist), !albumArtist.isEmpty {
+            info[MPMediaItemPropertyAlbumArtist] = albumArtist
+        }
+        if let trackNumber = track.trackNumber {
+            info[MPMediaItemPropertyAlbumTrackNumber] = trackNumber
+        }
+        if let disc = track.discNumber {
+            info[MPMediaItemPropertyDiscNumber] = disc
+        }
+        if !track.genre.isEmpty {
+            info[MPMediaItemPropertyGenre] = track.genre
+        }
+        let q = queue
+        info[MPNowPlayingInfoPropertyPlaybackQueueIndex] = q.currentIndex
+        info[MPNowPlayingInfoPropertyPlaybackQueueCount] = q.tracks.count
         MPNowPlayingInfoCenter.default().nowPlayingInfo = info
+        MPNowPlayingInfoCenter.default().playbackState = (state.status == .playing) ? .playing : .paused
     }
 
     private func updateNowPlayingPlaybackRate(_ rate: Float) {
@@ -1140,6 +1173,9 @@ final class PlaybackService: ObservableObject {
         info[MPNowPlayingInfoPropertyPlaybackRate] = rate
         info[MPNowPlayingInfoPropertyElapsedPlaybackTime] = state.positionSeconds
         MPNowPlayingInfoCenter.default().nowPlayingInfo = info
+        // CarPlay (iOS 13+) uses playbackState rather than playbackRate alone
+        // to drive the play/pause icon. Mirror it explicitly.
+        MPNowPlayingInfoCenter.default().playbackState = (rate > 0) ? .playing : .paused
     }
 
     // MARK: - Remote Command Center

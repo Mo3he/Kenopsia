@@ -26,8 +26,11 @@ final class WatchConnectivityService: NSObject {
     // MARK: - State observation
 
     private func observeState() {
+        // Throttle (not debounce): position updates several times per second
+        // during playback, which would reset a debounce timer indefinitely
+        // and prevent any snapshot from ever being delivered to the watch.
         PlaybackService.shared.$state
-            .debounce(for: .seconds(1), scheduler: RunLoop.main)
+            .throttle(for: .seconds(1), scheduler: RunLoop.main, latest: true)
             .sink { [weak self] state in self?.push(state: state) }
             .store(in: &cancellables)
     }
@@ -36,7 +39,7 @@ final class WatchConnectivityService: NSObject {
         guard WCSession.default.activationState == .activated,
               WCSession.default.isWatchAppInstalled else { return }
 
-        var context: [String: Any] = [
+        var payload: [String: Any] = [
             "status":   state.status.rawValue,
             "position": state.positionSeconds,
             "duration": state.durationSeconds,
@@ -52,12 +55,18 @@ final class WatchConnectivityService: NSObject {
                 let thumbnail = UIGraphicsImageRenderer(size: size).image { _ in
                     image.draw(in: CGRect(origin: .zero, size: size))
                 }
-                context["artwork"] = thumbnail.jpegData(compressionQuality: 0.65)
+                payload["artwork"] = thumbnail.jpegData(compressionQuality: 0.65)
             }
             lastSentArtworkKey = key
         }
 
-        try? WCSession.default.updateApplicationContext(context)
+        // Live updates via sendMessage when the watch app is in the foreground
+        // (sub-second delivery, no system throttling). Always also update the
+        // application context so the watch has fresh state on next launch.
+        if WCSession.default.isReachable {
+            WCSession.default.sendMessage(payload, replyHandler: nil) { _ in }
+        }
+        try? WCSession.default.updateApplicationContext(payload)
     }
 }
 

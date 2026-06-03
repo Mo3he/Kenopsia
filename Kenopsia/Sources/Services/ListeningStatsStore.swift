@@ -41,6 +41,26 @@ final class ListeningStatsStore: ObservableObject {
         Task { await flushScrobbles() }
     }
 
+    // MARK: - Record a track-started event (no scrobble, no play count bump)
+    /// Updates the recently-played list and `lastPlayedAt` so the CarPlay Recents
+    /// tab reflects what's playing right now. Scrobbling and play-count semantics
+    /// remain on `record(played:)` which fires only on track completion.
+    func recordStarted(_ track: Track) {
+        // De-dupe: if the most recent event is already this track, just bump the timestamp.
+        if let head = recentlyPlayed.first, head.trackID == track.id { return }
+        let event = PlayEvent(trackID: track.id, title: track.title, artist: track.artist,
+                              album: track.album, durationSeconds: track.durationSeconds,
+                              playedAt: Date())
+        recentlyPlayed.insert(event, at: 0)
+        if recentlyPlayed.count > 1000 { recentlyPlayed.removeLast() }
+        save()
+
+        if var updated = LibraryStore.shared.tracks[track.id] {
+            updated.lastPlayedAt = event.playedAt
+            LibraryStore.shared.update(track: updated)
+        }
+    }
+
     // MARK: - Scrobbling
     private func flushScrobbles() async {
         let toSend = pendingScrobbles

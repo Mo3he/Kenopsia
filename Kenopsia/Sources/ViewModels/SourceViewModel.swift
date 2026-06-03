@@ -44,6 +44,12 @@ final class SourceViewModel: ObservableObject {
         let old = sources[idx]
         sources[idx] = source
         registerAdapter(for: source)
+        // If the local/SMB folder bookmark changed, drop the cached security-scoped URL
+        // so the next scan resolves the new bookmark instead of reading the old folder.
+        if Self.localBookmarkData(for: old) != Self.localBookmarkData(for: source) {
+            localScopeURLs.removeValue(forKey: source.id)?.stopAccessingSecurityScopedResource()
+            activateSecurityScope(for: source)
+        }
         // If the pin was toggled off, evict all cached files for this source.
         if old.isPinnedOffline && !source.isPinnedOffline {
             Task { await OfflineCacheService.shared.unpinSource(sourceID: source.id) }
@@ -108,7 +114,7 @@ final class SourceViewModel: ObservableObject {
                 switch source.config {
                 case .local(let cfg):
                     guard let bookmark = cfg.bookmarkData else {
-                        completion?("No folder selected — tap 'Choose Folder' first")
+                        completion?("No folder selected. Tap 'Choose Folder' first.")
                         return
                     }
                     var stale = false
@@ -118,11 +124,13 @@ final class SourceViewModel: ObservableObject {
                         relativeTo: nil,
                         bookmarkDataIsStale: &stale
                     )
+                    if stale { self.refreshLocalBookmark(for: source.id, resolvedURL: url) }
                     if localScopeURLs[source.id] == nil {
                         _ = url.startAccessingSecurityScopedResource()
                         localScopeURLs[source.id] = url
                     }
                     let scopeURL = localScopeURLs[source.id] ?? url
+                    let rootReachable = FileManager.default.fileExists(atPath: scopeURL.path)
                     let scanner = LibraryScanner(store: LibraryStore.shared)
                     tracks = await scanner.scan(source: source, urls: [scopeURL])
                     // LibraryScanner.scan() calls store.merge() internally before returning.
@@ -131,15 +139,17 @@ final class SourceViewModel: ObservableObject {
                         LibraryStore.shared.removeTracks(from: source.id)
                         return
                     }
+                    self.safelyPrune(sourceID: source.id, fetched: tracks, rootReachable: rootReachable)
 
                 case .subsonic:
                     guard let adapter = await resolver.adapter(for: source.id) as? SubsonicSourceAdapter else {
-                        completion?("Adapter not registered — try removing and re-adding this source")
+                        completion?("Adapter not registered. Try removing and re-adding this source.")
                         return
                     }
                     tracks = try await adapter.fetchTracks()
                     try Task.checkCancellation()
                     LibraryStore.shared.merge(tracks: tracks, from: source.id)
+                    self.safelyPrune(sourceID: source.id, fetched: tracks)
 
                 case .nas(let cfg):
                     switch cfg.protocol_ {
@@ -151,9 +161,10 @@ final class SourceViewModel: ObservableObject {
                         tracks = try await adapter.fetchTracks()
                         try Task.checkCancellation()
                         LibraryStore.shared.merge(tracks: tracks, from: source.id)
+                        self.safelyPrune(sourceID: source.id, fetched: tracks)
                     case .smb:
                         guard let bookmark = cfg.smbBookmarkData else {
-                            completion?("No folder selected — tap 'Choose Folder' first")
+                            completion?("No folder selected. Tap 'Choose Folder' first.")
                             return
                         }
                         var stale = false
@@ -163,17 +174,20 @@ final class SourceViewModel: ObservableObject {
                             relativeTo: nil,
                             bookmarkDataIsStale: &stale
                         )
+                        if stale { self.refreshSMBBookmark(for: source.id, resolvedURL: url) }
                         if localScopeURLs[source.id] == nil {
                             _ = url.startAccessingSecurityScopedResource()
                             localScopeURLs[source.id] = url
                         }
                         let scopeURL = localScopeURLs[source.id] ?? url
+                        let rootReachable = FileManager.default.fileExists(atPath: scopeURL.path)
                         let scanner = LibraryScanner(store: LibraryStore.shared)
                         tracks = await scanner.scan(source: source, urls: [scopeURL])
                         if !self.sources.contains(where: { $0.id == source.id }) {
                             LibraryStore.shared.removeTracks(from: source.id)
                             return
                         }
+                        self.safelyPrune(sourceID: source.id, fetched: tracks, rootReachable: rootReachable)
                     }
 
                 case .webRadio(let cfg):
@@ -199,21 +213,25 @@ final class SourceViewModel: ObservableObject {
 
                 case .cloud:
                     guard let adapter = await resolver.adapter(for: source.id) as? CloudSourceAdapter else {
-                        completion?("Adapter not registered — try removing and re-adding this source")
+                        completion?("Adapter not registered. Try removing and re-adding this source.")
                         return
                     }
                     tracks = try await adapter.fetchTracks()
                     try Task.checkCancellation()
                     LibraryStore.shared.merge(tracks: tracks, from: source.id)
+                    self.safelyPrune(sourceID: source.id, fetched: tracks)
 
                 case .appleMusic:
                     guard let adapter = await resolver.adapter(for: source.id) as? AppleMusicService else {
-                        completion?("Adapter not registered — try removing and re-adding this source")
+                        completion?("Adapter not registered. Try removing and re-adding this source.")
                         return
                     }
                     tracks = try await adapter.fetchTracks()
                     try Task.checkCancellation()
                     LibraryStore.shared.merge(tracks: tracks, from: source.id)
+                    // Apple Music intentionally does NOT prune: MusicKit can return
+                    // a partial library if authorisation is in flux, and pruning then
+                    // would silently delete legitimate library entries.
 
                 default:
                     completion?("This source type does not support scanning")
@@ -376,6 +394,64 @@ final class SourceViewModel: ObservableObject {
         // Re-activate security scopes for all local and SMB NAS sources so files are accessible
         // immediately on launch (not only after the user triggers a scan).
         sources.filter { $0.kind == .local || ($0.kind == .nas) }.forEach { activateSecurityScope(for: $0) }
+    }
+
+    // MARK: - Pruning helpers
+
+    /// Prune library entries for a source whose URIs are no longer present in `fetched`,
+    /// but only when it is safe to do so. A scan that returns zero tracks against a
+    /// previously-populated source is treated as a probable failure (storage detached,
+    /// auth lapsed, network down) and the prune is skipped to avoid silently wiping
+    /// the library. Local/SMB callers also pass `rootReachable` so an unreachable
+    /// folder never triggers a prune.
+    private func safelyPrune(sourceID: MusicSourceID, fetched: [Track], rootReachable: Bool = true) {
+        guard rootReachable else { return }
+        let previousCount = LibraryStore.shared.tracks.values.lazy.filter { $0.source == sourceID }.count
+        if fetched.isEmpty && previousCount > 0 { return }
+        let removed = LibraryStore.shared.pruneTracks(
+            from: sourceID,
+            keepingURIKeys: Set(fetched.map { $0.uri.stableKey })
+        )
+        guard !removed.isEmpty else { return }
+        Task {
+            for track in removed { await OfflineCacheService.shared.delete(track: track) }
+        }
+    }
+
+    // MARK: - Bookmark helpers
+
+    /// Returns the active folder bookmark data for sources that have one.
+    private static func localBookmarkData(for source: MusicSource) -> Data? {
+        switch source.config {
+        case .local(let cfg): return cfg.bookmarkData
+        case .nas(let cfg) where cfg.protocol_ == .smb: return cfg.smbBookmarkData
+        default: return nil
+        }
+    }
+
+    /// Re-create a stale bookmark from the currently-resolved URL and persist it.
+    /// iOS marks bookmarks stale after some OS upgrades and reinstalls; failing to
+    /// refresh means the next launch silently loses folder access.
+    private func refreshLocalBookmark(for sourceID: MusicSourceID, resolvedURL url: URL) {
+        guard let idx = sources.firstIndex(where: { $0.id == sourceID }) else { return }
+        guard case .local(var cfg) = sources[idx].config,
+              let fresh = try? url.bookmarkData(
+                options: .minimalBookmark, includingResourceValuesForKeys: nil, relativeTo: nil
+              ) else { return }
+        cfg.bookmarkData = fresh
+        sources[idx].config = .local(cfg)
+        save()
+    }
+
+    private func refreshSMBBookmark(for sourceID: MusicSourceID, resolvedURL url: URL) {
+        guard let idx = sources.firstIndex(where: { $0.id == sourceID }) else { return }
+        guard case .nas(var cfg) = sources[idx].config, cfg.protocol_ == .smb,
+              let fresh = try? url.bookmarkData(
+                options: .minimalBookmark, includingResourceValuesForKeys: nil, relativeTo: nil
+              ) else { return }
+        cfg.smbBookmarkData = fresh
+        sources[idx].config = .nas(cfg)
+        save()
     }
 
     private func activateSecurityScope(for source: MusicSource) {

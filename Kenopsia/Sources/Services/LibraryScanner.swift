@@ -41,7 +41,13 @@ actor LibraryScanner {
                 let enumerator = FileManager.default.enumerator(
                     at: url,
                     includingPropertiesForKeys: [.isRegularFileKey],
-                    options: [.skipsHiddenFiles]
+                    options: [.skipsHiddenFiles],
+                    errorHandler: { failedURL, error in
+                        // Permission failures and unreachable network paths surface here.
+                        // Log and continue so a single bad subtree does not abort the scan.
+                        print("LibraryScanner: enumeration error at \(failedURL.path): \(error.localizedDescription)")
+                        return true
+                    }
                 )
                 while let fileURL = enumerator?.nextObject() as? URL {
                     if AudioFormat(fileExtension: fileURL.pathExtension) != nil {
