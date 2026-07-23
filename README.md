@@ -1,4 +1,6 @@
-# Kenopsia
+# Kenopsia  
+[![Sponsor](https://img.shields.io/badge/Sponsor%20My%20Work-EA4AAA?style=flat&logo=github&logoColor=white)](https://github.com/sponsors/Mo3he)
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-FFDD00?style=flat&logo=buy-me-a-coffee&logoColor=black)](https://www.buymeacoffee.com/mo3he)
 
 A powerful, source-agnostic music player for iPhone, iPad, Apple Watch, and CarPlay.
 
