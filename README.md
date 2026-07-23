@@ -2,6 +2,9 @@
 
 A powerful, source-agnostic music player for iPhone, iPad, Apple Watch, and CarPlay.
 
+Download it on the iOS App Store here  
+[Kenopsia](https://apps.apple.com/se/app/kenopsia/id6771028724?l=en-GB)
+
 ## Features
 
 - Play music from local files, iCloud Drive, Subsonic/Navidrome servers, NAS/DLNA, Backblaze B2, and Apple Music
