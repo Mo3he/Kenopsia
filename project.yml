@@ -71,7 +71,6 @@ targets:
           # matches nothing. No other loose .mp3/.jpg resources are bundled;
           # app imagery lives in Assets.xcassets.
           EXCLUDED_SOURCE_FILE_NAMES: "*.mp3 album_*.jpg artist_*.jpg virtual_*.jpg"
-    linkedFrameworks:
     entitlements:
       path: Kenopsia/Kenopsia.entitlements
       properties:

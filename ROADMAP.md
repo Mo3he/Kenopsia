@@ -163,7 +163,7 @@ Audio app template for CarPlay with Now Playing and library browsing.
 | Library tab | `CPListTemplate` with Albums, Playlists, and Songs sections; tap to drill into album/playlist track list |
 | Drill-down | Album detail: Play All, Shuffle, and individual tracks. Playlist detail: Play All and individual tracks |
 | PlaybackService | Added `static let shared` singleton so both the SwiftUI layer and `CarPlaySceneDelegate` share the same instance |
-| CarPlay framework | Linked via `linkedFrameworks` in `project.yml` |
+| CarPlay framework | Auto-linked from `import CarPlay`; no explicit entry in `project.yml`. Note that XcodeGen has no `linkedFrameworks` target key — system frameworks go under `dependencies` as `sdk:`. |
 
 ### Notes
 - `com.apple.developer.carplay-audio` must be enabled in the Apple Developer portal for the app's identifier before deploying to a real device (no special approval required for audio apps)
