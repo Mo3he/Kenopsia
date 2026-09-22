@@ -235,6 +235,12 @@ struct MetadataReader {
             guard let value = try? await item.load(.value) else { continue }
             // Check common key first
             if let key = item.commonKey {
+                // Whether the common key was actually consumed. Items carrying a
+                // common key we ignore must still fall through to the keyspace
+                // switch below: ID3 TCON (genre) arrives as .commonKeyType, so
+                // continuing unconditionally made the "TCON" branch dead code and
+                // no track ever got a genre.
+                var handled = true
                 switch key {
                 case .commonKeyTitle:      meta.title       = value as? String
                 case .commonKeyArtist:     meta.artist      = value as? String
@@ -249,9 +255,9 @@ struct MetadataReader {
                     } else if let data = try? await item.load(.dataValue), !data.isEmpty {
                         meta.artworkData = data
                     }
-                default: break
+                default: handled = false
                 }
-                continue
+                if handled { continue }
             }
             // Fall through to keySpace-specific keys
             let keyStr = item.key as? String ?? ""
