@@ -202,6 +202,14 @@ final class AudioEngine {
             isRunning = false   // clear stale flag so start() can proceed
             try start()
         }
+        // An engine restart drops every scheduled buffer, including the staging
+        // player's. Leaving stagingIsReady == true would let transition() report
+        // success and crossfade into a silent node, so clear it here — the caller
+        // re-runs preScheduleNext() to set it again honestly.
+        crossfadeGeneration += 1   // cancel any in-flight crossfade
+        lock.lock()
+        stagingIsReady = false
+        lock.unlock()
         guard !engine.outputConnectionPoints(for: activePlayer, outputBus: 0).isEmpty else {
             throw NSError(domain: AVFoundationErrorDomain, code: -1,
                           userInfo: [NSLocalizedDescriptionKey: "Player node disconnected"])

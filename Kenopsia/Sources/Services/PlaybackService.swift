@@ -1239,8 +1239,22 @@ final class PlaybackService: ObservableObject {
                   let file = try? AVAudioFile(forReading: url) else { return }
             do {
                 try engine.resumeActivePlayer(at: position, in: file)
+                // resumeActivePlayer reschedules from `position`, which resets the
+                // node's sampleTime to 0. tickPosition computes the reported position
+                // as sampleTime/sampleRate + positionOffset, so without this the
+                // reported position drops by `position` and never climbs back —
+                // the crossfade trigger (seconds >= duration - xfade) then never fires
+                // and every transition after a route change is a hard cut.
+                positionOffset = position
+                crossfadeTriggeredForCurrentTrack = false
                 if !wasPlaying {
                     engine.activePlayer.pause()
+                }
+                // The engine restart cleared the staging node's scheduled buffers, so
+                // the next track has to be pre-scheduled again. Without this the
+                // staging player is empty and the crossfade fades into silence.
+                if let next = queue.nextTrack {
+                    await preScheduleNext(next)
                 }
             } catch {
                 // Engine truly broken -- fall back to AVPlayer for this track
