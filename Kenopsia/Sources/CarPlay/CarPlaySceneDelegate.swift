@@ -63,7 +63,16 @@ final class CarPlaySceneDelegate: NSObject, CPTemplateApplicationSceneDelegate {
             .map(\.currentTrackID)
             .removeDuplicates()
             .sink { [weak self] _ in
-                Task { @MainActor [weak self] in self?.refreshTabs() }
+                Task { @MainActor [weak self] in
+                    self?.refreshTabs()
+                    self?.refreshNowPlayingButtonAvailability()
+                }
+            }
+
+        queueObserver = PlaybackService.shared.queue.objectWillChange
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                Task { @MainActor [weak self] in self?.refreshNowPlayingButtonAvailability() }
             }
 
         recentsObserver = ListeningStatsStore.shared.$recentlyPlayed
@@ -78,6 +87,7 @@ final class CarPlaySceneDelegate: NSObject, CPTemplateApplicationSceneDelegate {
         _ templateApplicationScene: CPTemplateApplicationScene,
         didDisconnectInterfaceController interfaceController: CPInterfaceController
     ) {
+        CPNowPlayingTemplate.shared.remove(self)
         if let obs = libraryObserver { NotificationCenter.default.removeObserver(obs) }
         if let obs = artworkObserver { NotificationCenter.default.removeObserver(obs) }
         libraryObserver = nil
@@ -123,11 +133,25 @@ final class CarPlaySceneDelegate: NSObject, CPTemplateApplicationSceneDelegate {
 
     private func configureNowPlayingTemplate() {
         let np = CPNowPlayingTemplate.shared
-        np.isUpNextButtonEnabled = true
-        np.isAlbumArtistButtonEnabled = true
         np.upNextTitle = "Up Next"
         np.updateNowPlayingButtons(nowPlayingButtons())
+        np.remove(self)
         np.add(self)
+        refreshNowPlayingButtonAvailability()
+    }
+
+    /// Toggle the Up Next / Album-Artist buttons based on actual queue state.
+    /// Tapping Up Next when there are no upcoming tracks (e.g. a single-track
+    /// queue or web radio) used to push an empty list, which CarPlay rejects
+    /// with an exception that crashes the scene and leaves it unable to
+    /// reconnect until the head unit is unplugged.
+    private func refreshNowPlayingButtonAvailability() {
+        let q = PlaybackService.shared.queue
+        let hasUpcoming = q.currentIndex + 1 < q.tracks.count
+        let hasAlbumContext = (q.currentTrack?.album.isEmpty == false)
+        let np = CPNowPlayingTemplate.shared
+        if np.isUpNextButtonEnabled != hasUpcoming { np.isUpNextButtonEnabled = hasUpcoming }
+        if np.isAlbumArtistButtonEnabled != hasAlbumContext { np.isAlbumArtistButtonEnabled = hasAlbumContext }
     }
 
     private func nowPlayingButtons() -> [CPNowPlayingButton] {
@@ -591,7 +615,7 @@ final class CarPlaySceneDelegate: NSObject, CPTemplateApplicationSceneDelegate {
         detailIsArtist: Bool
     ) -> CPListItem {
         let detail = detailIsArtist ? track.artist : track.album
-        let item = CPListItem(text: track.title, detailText: detail.isEmpty ? nil : detail)
+        let item = CPListItem(text: displayTitle(for: track), detailText: detail.isEmpty ? nil : detail)
         applyArtwork(trackArtworkKey(for: track), to: item)
         if PlaybackService.shared.state.currentTrackID == track.id {
             item.isPlaying = true
@@ -753,12 +777,17 @@ extension CarPlaySceneDelegate: CPNowPlayingTemplateObserver {
     }
 
     private func handleUpNextTapped() {
+        guard let interfaceController else { return }
         let q = PlaybackService.shared.queue
         let upcoming = Array(q.tracks.dropFirst(q.currentIndex + 1).prefix(CPListTemplate.maximumItemCount))
-        guard !upcoming.isEmpty else { return }
+        guard !upcoming.isEmpty else {
+            refreshNowPlayingButtonAvailability()
+            return
+        }
         let baseIndex = q.currentIndex + 1
         let items: [CPListItem] = upcoming.enumerated().map { (i, track) in
-            let item = CPListItem(text: track.title, detailText: track.artist)
+            let item = CPListItem(text: displayTitle(for: track),
+                                  detailText: track.artist.isEmpty ? nil : track.artist)
             applyArtwork(trackArtworkKey(for: track), to: item)
             item.handler = { _, completion in
                 Task { @MainActor in
@@ -774,7 +803,16 @@ extension CarPlaySceneDelegate: CPNowPlayingTemplateObserver {
             items: zip(upcoming, items).map { (trackArtworkKey(for: $0.0), $0.1) }
         )
         fetchMissingArtwork(forTracksIn: template, tracks: upcoming)
-        interfaceController?.pushTemplate(template, animated: true, completion: nil)
+        interfaceController.pushTemplate(template, animated: true) { success, error in
+            if !success {
+                NSLog("[CarPlay] Up Next push failed: %@", error?.localizedDescription ?? "unknown")
+            }
+        }
+    }
+
+    private func displayTitle(for track: Track) -> String {
+        let trimmed = track.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? "Unknown Track" : trimmed
     }
 
     private func handleAlbumArtistTapped() {
