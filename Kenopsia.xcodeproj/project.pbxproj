@@ -23,7 +23,6 @@
 		1D8FD5B9E840758DE68B0F9D /* LibraryScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B714E2113B2E2AE3E7AA2C5 /* LibraryScanner.swift */; };
 		1EB650CCE3792386CB09E077 /* QueueAndPlaylistTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36D990598A3A601CDACE12FE /* QueueAndPlaylistTests.swift */; };
 		21B9D38D7040D5B18DE0077C /* OfflineCacheService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02A5964814A9722620E09632 /* OfflineCacheService.swift */; };
-		235BFF1BCA9314329479E44C /* CarPlayListTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86A3831C9A67A511D8848902 /* CarPlayListTests.swift */; };
 		28B64DB8FD0CC472C3A632B2 /* DuplicateFinderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCA63149A14BBE1D7290F800 /* DuplicateFinderView.swift */; };
 		2C2E7B2F9C5A8846851E7C91 /* LibraryViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 382D2D228ACDF8DE4FE0F414 /* LibraryViewModel.swift */; };
 		3057FC286219BFDE8591CDC6 /* SmartPlaylistEvaluatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB451A86C7C00F5A7022B7E7 /* SmartPlaylistEvaluatorTests.swift */; };
@@ -113,6 +112,7 @@
 		CF10FD157A50A91D59CA9DDD /* virtual_kyle.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 4FEB1C1D80FDEC834764952D /* virtual_kyle.jpg */; };
 		D2292F9571E231C7B98EC1AD /* artist_kevin_macleod.jpg in Resources */ = {isa = PBXBuildFile; fileRef = B8D535A626753C934C1B356A /* artist_kevin_macleod.jpg */; };
 		D7FB2568BE06171F2A5632FB /* ArtworkCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9ADDA74815DA49F1C1F3246C /* ArtworkCache.swift */; };
+		DBEDF5BAFF1562DBC258159C /* GenreIndex.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42DBDB987B254AC73532641B /* GenreIndex.swift */; };
 		DE486B750F13BA589ADA3C21 /* SourceViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CE26A133E764760BF7F7BD9 /* SourceViewModel.swift */; };
 		E07D32B821FD5D81CA50ECA5 /* CastStubs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AC5AEFD231263676594A380 /* CastStubs.swift */; };
 		E0BF1CCCADD978DCE947BEE1 /* KenopsiaWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = D917D124283DA316A796BD72 /* KenopsiaWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -126,6 +126,7 @@
 		F52C7DA68B598E81FC6EB3C6 /* SearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 139C263FD8F74B67DF7753C4 /* SearchView.swift */; };
 		F97793A8B1968E83038B5A79 /* Track.swift in Sources */ = {isa = PBXBuildFile; fileRef = B261A0376A2AD232731440F0 /* Track.swift */; };
 		F9C4145C0EB6A7D5ABF79C2F /* vicious_01.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = C68C44FB1583D7FEF22772D5 /* vicious_01.mp3 */; };
+		FCDE17F5C3F0B9CA681E7A8D /* CarPlayAndGenreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2B616FDE771921D8A49929D /* CarPlayAndGenreTests.swift */; };
 		FD2E0BB12AEC99BC358F492D /* DLNABrowser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E6ECC3A730C0F48CABBC256 /* DLNABrowser.swift */; };
 		FF1BFB50227F419FB89F173F /* minrs_04.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = C2AD1D17BD9E8655C3E16F4D /* minrs_04.mp3 */; };
 /* End PBXBuildFile section */
@@ -224,6 +225,7 @@
 		40436B394C3671CBF76B0EB6 /* KenopsiaWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = KenopsiaWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		40D6131C9F8E538CB61B3558 /* idea_02.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = idea_02.mp3; sourceTree = "<group>"; };
 		412C971425D1FD66F2D36593 /* LibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryView.swift; sourceTree = "<group>"; };
+		42DBDB987B254AC73532641B /* GenreIndex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GenreIndex.swift; sourceTree = "<group>"; };
 		4CCDF0A1C9711DB29F5EA7A2 /* SourceResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourceResolver.swift; sourceTree = "<group>"; };
 		4D14ACF2A7A0DF285054E279 /* DuplicateFinder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuplicateFinder.swift; sourceTree = "<group>"; };
 		4EDC9CDB4C1F38F0C4BB5209 /* PlayerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerViewModel.swift; sourceTree = "<group>"; };
@@ -251,7 +253,6 @@
 		8021754E837AC35A13D7E8A0 /* album_minrs.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = album_minrs.jpg; sourceTree = "<group>"; };
 		839E22A26406A54FDE8D7484 /* GoogleSansBold.bundle */ = {isa = PBXFileReference; lastKnownFileType = wrapper.cfbundle; path = GoogleSansBold.bundle; sourceTree = "<group>"; };
 		85847FA5D2CA86253CA969E8 /* SmartPlaylistEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartPlaylistEditorView.swift; sourceTree = "<group>"; };
-		86A3831C9A67A511D8848902 /* CarPlayListTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CarPlayListTests.swift; sourceTree = "<group>"; };
 		872A4C505173E08A66620184 /* super_02.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = super_02.mp3; sourceTree = "<group>"; };
 		89319C2837E07DF5C6667BEE /* KenopsiaWatchScreenshots.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KenopsiaWatchScreenshots.swift; sourceTree = "<group>"; };
 		8A1176591A8B8352EFA40D64 /* artist_lee_rosevere.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = artist_lee_rosevere.jpg; sourceTree = "<group>"; };
@@ -315,6 +316,7 @@
 		EB451A86C7C00F5A7022B7E7 /* SmartPlaylistEvaluatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartPlaylistEvaluatorTests.swift; sourceTree = "<group>"; };
 		F09103609A7F5DB996FCDB8A /* KenopsiaWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KenopsiaWidgetBundle.swift; sourceTree = "<group>"; };
 		F166EA96B982DCB7F78581D0 /* virtual_aria.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = virtual_aria.jpg; sourceTree = "<group>"; };
+		F2B616FDE771921D8A49929D /* CarPlayAndGenreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CarPlayAndGenreTests.swift; sourceTree = "<group>"; };
 		F4A496F5D40C0A22F9E25ADE /* LyricsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LyricsService.swift; sourceTree = "<group>"; };
 		F5E44F8391C0C510220ACA22 /* NowPlayingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowPlayingView.swift; sourceTree = "<group>"; };
 		FBCA4DA9B388916EDDA0B3DD /* SourcesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourcesView.swift; sourceTree = "<group>"; };
@@ -649,6 +651,7 @@
 				6B0284FE9927377AFA4E6BD3 /* DemoDataProvider.swift */,
 				1E6ECC3A730C0F48CABBC256 /* DLNABrowser.swift */,
 				4D14ACF2A7A0DF285054E279 /* DuplicateFinder.swift */,
+				42DBDB987B254AC73532641B /* GenreIndex.swift */,
 				7B714E2113B2E2AE3E7AA2C5 /* LibraryScanner.swift */,
 				913F47C740EBBB8FA985FF19 /* LibraryStore.swift */,
 				FE026C35D02CECB6F52206AD /* ListeningStatsStore.swift */,
@@ -705,7 +708,7 @@
 		FA097D30A8338D4D9B1958A6 /* KenopsiaTests */ = {
 			isa = PBXGroup;
 			children = (
-				86A3831C9A67A511D8848902 /* CarPlayListTests.swift */,
+				F2B616FDE771921D8A49929D /* CarPlayAndGenreTests.swift */,
 				C0602E46D89B74C3211F9092 /* DuplicateFinderTests.swift */,
 				36D990598A3A601CDACE12FE /* QueueAndPlaylistTests.swift */,
 				EB451A86C7C00F5A7022B7E7 /* SmartPlaylistEvaluatorTests.swift */,
@@ -980,6 +983,7 @@
 				8024289895D971DAA48AC7BC /* DuplicateFinder.swift in Sources */,
 				28B64DB8FD0CC472C3A632B2 /* DuplicateFinderView.swift in Sources */,
 				8A4C26DFAB13E96EE9BE7C92 /* EQView.swift in Sources */,
+				DBEDF5BAFF1562DBC258159C /* GenreIndex.swift in Sources */,
 				5C72D0059EBF97290B0BB2B1 /* KenopsiaApp.swift in Sources */,
 				1D8FD5B9E840758DE68B0F9D /* LibraryScanner.swift in Sources */,
 				5174990BB6E0861FFBF49615 /* LibraryStore.swift in Sources */,
@@ -1031,7 +1035,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				235BFF1BCA9314329479E44C /* CarPlayListTests.swift in Sources */,
+				FCDE17F5C3F0B9CA681E7A8D /* CarPlayAndGenreTests.swift in Sources */,
 				9887D4D45374E0F450BF20BA /* DuplicateFinderTests.swift in Sources */,
 				1EB650CCE3792386CB09E077 /* QueueAndPlaylistTests.swift in Sources */,
 				3057FC286219BFDE8591CDC6 /* SmartPlaylistEvaluatorTests.swift in Sources */,

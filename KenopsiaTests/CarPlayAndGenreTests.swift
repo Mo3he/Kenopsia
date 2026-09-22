@@ -3,9 +3,9 @@ import Foundation
 import Testing
 @testable import Kenopsia
 
-private func cpTrack(genre: String = "Rock") -> Track {
+private func cpTrack(title: String = "Song", genre: String = "Rock") -> Track {
     Track(
-        title: "Song",
+        title: title,
         artist: "Artist",
         genre: genre,
         source: MusicSourceID(),
@@ -57,12 +57,11 @@ struct CarPlayTruncationTests {
     }
 }
 
-@Suite("CarPlay genre buckets")
-@MainActor
-struct CarPlayGenreTests {
+@Suite("Genre index")
+struct GenreIndexTests {
 
     @Test func groupsTracksByGenre() {
-        let buckets = CarPlaySceneDelegate.genreBuckets(in: [
+        let buckets = GenreIndex.buckets(in: [
             cpTrack(genre: "Rock"), cpTrack(genre: "Rock"), cpTrack(genre: "Jazz")
         ])
         #expect(buckets.count == 2)
@@ -71,7 +70,7 @@ struct CarPlayGenreTests {
     }
 
     @Test func blankGenresAreIgnored() {
-        let buckets = CarPlaySceneDelegate.genreBuckets(in: [
+        let buckets = GenreIndex.buckets(in: [
             cpTrack(genre: ""), cpTrack(genre: "   "), cpTrack(genre: "Rock")
         ])
         #expect(buckets.count == 1)
@@ -79,7 +78,7 @@ struct CarPlayGenreTests {
     }
 
     @Test func surroundingWhitespaceIsTrimmed() {
-        let buckets = CarPlaySceneDelegate.genreBuckets(in: [
+        let buckets = GenreIndex.buckets(in: [
             cpTrack(genre: "Rock"), cpTrack(genre: "  Rock  ")
         ])
         #expect(buckets.count == 1)
@@ -87,6 +86,27 @@ struct CarPlayGenreTests {
     }
 
     @Test func noTracksMeansNoGenres() {
-        #expect(CarPlaySceneDelegate.genreBuckets(in: [Track]()).isEmpty)
+        #expect(GenreIndex.buckets(in: [Track]()).isEmpty)
+    }
+
+    @Test func genresAreListedAlphabeticallyIgnoringCase() {
+        let genres = GenreIndex.sortedGenres(in: [
+            cpTrack(genre: "rock"), cpTrack(genre: "Ambient"), cpTrack(genre: "jazz")
+        ])
+        #expect(genres.map(\.name) == ["Ambient", "jazz", "rock"])
+    }
+
+    @Test func tracksWithinAGenreAreSortedByTitle() {
+        let genres = GenreIndex.sortedGenres(in: [
+            cpTrack(title: "Zebra", genre: "Rock"),
+            cpTrack(title: "Apple", genre: "Rock")
+        ])
+        #expect(genres.count == 1)
+        #expect(genres[0].tracks.map(\.title) == ["Apple", "Zebra"])
+    }
+
+    @Test func genreIdIsItsName() {
+        let genres = GenreIndex.sortedGenres(in: [cpTrack(genre: "Rock")])
+        #expect(genres[0].id == "Rock")
     }
 }

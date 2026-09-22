@@ -57,6 +57,15 @@ final class LibraryViewModel: ObservableObject {
         return artists.filter { $0.name.lowercased().contains(q) }
     }
 
+    /// Genres present in the current source selection, derived on demand.
+    var genres: [Genre] { GenreIndex.sortedGenres(in: tracks) }
+
+    var filteredGenres: [Genre] {
+        guard !filterText.isEmpty else { return genres }
+        let q = filterText.lowercased()
+        return genres.filter { $0.name.lowercased().contains(q) }
+    }
+
     var playlists: [Playlist] { Array(store.playlists.values).sorted { $0.name < $1.name } }
 
     /// Source IDs that have at least one track in the library.

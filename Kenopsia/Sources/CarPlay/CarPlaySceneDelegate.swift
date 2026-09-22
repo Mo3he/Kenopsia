@@ -297,7 +297,7 @@ final class CarPlaySceneDelegate: NSObject, CPTemplateApplicationSceneDelegate {
         if let cached = cachedGenreCount {
             genreCount = cached
         } else {
-            genreCount = Self.genreBuckets(in: store.tracks.values).count
+            genreCount = GenreIndex.buckets(in: store.tracks.values).count
             cachedGenreCount = genreCount
         }
         let genresItem = CPListItem(text: "Genres", detailText: "\(genreCount)")
@@ -502,21 +502,9 @@ final class CarPlaySceneDelegate: NSObject, CPTemplateApplicationSceneDelegate {
 
     // MARK: - Genres
 
-    /// Tracks bucketed by genre, ignoring blank tags. Derived on demand —
-    /// LibraryStore indexes albums and artists but not genres.
-    static func genreBuckets(in tracks: some Collection<Track>) -> [String: [Track]] {
-        var buckets: [String: [Track]] = [:]
-        for track in tracks {
-            let genre = track.genre.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !genre.isEmpty else { continue }
-            buckets[genre, default: []].append(track)
-        }
-        return buckets
-    }
-
     private func pushGenresList() {
         let store = LibraryStore.shared
-        let buckets = Self.genreBuckets(in: store.tracks.values)
+        let buckets = GenreIndex.buckets(in: store.tracks.values)
         let names = buckets.keys.sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
         let (limited, hiddenCount) = Self.limitedForDisplay(names)
 

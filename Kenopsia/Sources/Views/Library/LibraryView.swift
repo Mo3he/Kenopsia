@@ -220,6 +220,7 @@ struct LibraryView: View {
             case .albums:    AlbumListView()
             case .artists:   ArtistListView()
             case .tracks:    TrackListView(tracks: library.tracks)
+            case .genres:    GenreListView()
             case .playlists: PlaylistListView()
             case .folders:   FolderBrowserView()
             case .history:   RecentlyPlayedView()
@@ -284,12 +285,13 @@ enum LibraryLayout: String, CaseIterable {
 
 // MARK: - LibrarySection
 enum LibrarySection: CaseIterable {
-    case artists, albums, tracks, playlists, history, folders
+    case artists, albums, tracks, genres, playlists, history, folders
     var label: String {
         switch self {
         case .artists:   "ARTISTS"
         case .albums:    "ALBUMS"
         case .tracks:    "TRACKS"
+        case .genres:    "GENRES"
         case .playlists: "PLAYLISTS"
         case .history:   "HISTORY"
         case .folders:   "FOLDERS"
@@ -715,6 +717,49 @@ struct ArtistRowView: View {
     }
 }
 
+// MARK: - GenreListView
+/// Genres are always linear — there is no artwork to show in a grid.
+struct GenreListView: View {
+    @EnvironmentObject var library: LibraryViewModel
+    @EnvironmentObject var player: PlayerViewModel
+
+    var body: some View {
+        let genres = library.filteredGenres
+        Group {
+            if genres.isEmpty {
+                ContentUnavailableView(
+                    "No Genres",
+                    systemImage: "guitars",
+                    description: Text("None of your tracks carry a genre tag. Rescan a source to pick up tags added since it was last scanned.")
+                )
+            } else {
+                List {
+                    ForEach(genres) { genre in
+                        NavigationLink(destination: TrackListView(tracks: genre.tracks)
+                            .navigationTitle(genre.name)
+                            .navigationBarTitleDisplayMode(.inline)) {
+                            HStack {
+                                Text(genre.name)
+                                    .font(.subheadline.bold())
+                                Spacer()
+                                Text("\(genre.tracks.count)")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .padding(.vertical, 4)
+                        }
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets(top: 0, leading: 20, bottom: 0, trailing: 20))
+                    }
+                }
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
+                .contentMargins(.bottom, player.state.status != .stopped ? 66 : 0, for: .scrollContent)
+            }
+        }
+    }
+}
+
 // MARK: - TrackListView (reusable)
 struct TrackListView: View {
     let tracks: [Track]
@@ -722,11 +767,18 @@ struct TrackListView: View {
     @EnvironmentObject var library: LibraryViewModel
     @State private var editingTrack: Track?
     @State private var activeLetter: String?
+    @State private var isSelecting = false
+    @State private var selection: Set<UUID> = []
+    @State private var confirmingRemoval = false
 
     private var sections: [(letter: String, items: [Track])] {
         alphaGroup(tracks, key: \.title)
     }
     private var letters: [String] { sections.map(\.letter) }
+
+    /// Selected tracks in the list's own order, so "Add to Playlist" appends
+    /// them the way the user sees them rather than in set order.
+    private var selectedTracks: [Track] { tracks.filter { selection.contains($0.id) } }
 
     var body: some View {
         ZStack(alignment: .trailing) {
@@ -744,12 +796,29 @@ struct TrackListView: View {
                                 .listRowSeparator(.hidden)
                                 .listRowInsets(EdgeInsets(top: 10, leading: 20, bottom: 2, trailing: 20))
                             ForEach(section.items) { track in
-                                TrackRowView(track: track)
+                                HStack(spacing: 10) {
+                                    if isSelecting {
+                                        Image(systemName: selection.contains(track.id)
+                                              ? "checkmark.circle.fill" : "circle")
+                                            .foregroundStyle(selection.contains(track.id)
+                                                             ? Color.accentColor : Color.primary.opacity(0.3))
+                                            .font(.system(size: 20))
+                                            .transition(.opacity)
+                                    }
+                                    TrackRowView(track: track)
+                                }
                                     .contentShape(Rectangle())
                                     .onTapGesture {
-                                        player.play(tracks: tracks, startAt: tracks.firstIndex(of: track) ?? 0)
+                                        if isSelecting {
+                                            toggle(track)
+                                        } else {
+                                            player.play(tracks: tracks, startAt: tracks.firstIndex(of: track) ?? 0)
+                                        }
                                     }
+                                    // Swipes would fight the selection tap target,
+                                    // so they stand down while selecting.
                                     .swipeActions(edge: .trailing) {
+                                        if !isSelecting {
                                         Button(role: .destructive) { library.delete(trackID: track.id) } label: {
                                             Label("Remove", systemImage: "trash")
                                         }
@@ -761,12 +830,15 @@ struct TrackListView: View {
                                             Label("Play Next", systemImage: "text.line.first.and.arrowtriangle.forward")
                                         }
                                         .tint(.kCyan)
+                                        }
                                     }
                                     .swipeActions(edge: .leading) {
-                                        Button { player.enqueueLast(track) } label: {
-                                            Label("Add to Queue", systemImage: "text.append")
+                                        if !isSelecting {
+                                            Button { player.enqueueLast(track) } label: {
+                                                Label("Add to Queue", systemImage: "text.append")
+                                            }
+                                            .tint(.orange)
                                         }
-                                        .tint(.orange)
                                     }
                                     .contextMenu {
                                         Button { player.enqueueNext(track) } label: {
@@ -815,9 +887,113 @@ struct TrackListView: View {
                     .padding(.bottom, player.state.status != .stopped ? 66 : 0)
             }
         }
+        .safeAreaInset(edge: .top) { selectBar }
+        .safeAreaInset(edge: .bottom) {
+            if isSelecting && !selection.isEmpty { selectionActionBar }
+        }
         .sheet(item: $editingTrack) { track in
             TagEditorView(track: track)
                 .environmentObject(library)
+        }
+        .confirmationDialog(
+            "Remove \(selection.count) \(selection.count == 1 ? "track" : "tracks") from library?",
+            isPresented: $confirmingRemoval,
+            titleVisibility: .visible
+        ) {
+            Button("Remove \(selection.count)", role: .destructive) {
+                for id in selection { library.delete(trackID: id) }
+                endSelecting()
+            }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("The files themselves are left alone.")
+        }
+    }
+
+    // MARK: - Selection
+
+    private var selectBar: some View {
+        HStack {
+            if isSelecting {
+                Button(selection.count == tracks.count ? "Deselect All" : "Select All") {
+                    selection = selection.count == tracks.count ? [] : Set(tracks.map(\.id))
+                }
+                .font(.system(size: 12, weight: .semibold))
+                Spacer()
+                Text("\(selection.count) selected")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Button("Done") { endSelecting() }
+                    .font(.system(size: 12, weight: .bold))
+            } else {
+                Spacer()
+                Button("Select") {
+                    withAnimation(.easeInOut(duration: 0.15)) { isSelecting = true }
+                }
+                .font(.system(size: 12, weight: .semibold))
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 8)
+        .background(.bar)
+    }
+
+    private var selectionActionBar: some View {
+        HStack(spacing: 10) {
+            let manualPlaylists = library.playlists.filter { $0.kind == .manual }
+            Menu {
+                if manualPlaylists.isEmpty {
+                    Text("No manual playlists yet")
+                } else {
+                    ForEach(manualPlaylists) { playlist in
+                        Button(playlist.name) { addSelection(to: playlist.id) }
+                    }
+                }
+            } label: {
+                Label("Add to Playlist", systemImage: "text.badge.plus")
+                    .font(.system(size: 12, weight: .semibold))
+                    .frame(maxWidth: .infinity)
+            }
+            .disabled(manualPlaylists.isEmpty)
+
+            Button {
+                for track in selectedTracks { player.enqueueLast(track) }
+                endSelecting()
+            } label: {
+                Label("Queue", systemImage: "text.append")
+                    .font(.system(size: 12, weight: .semibold))
+                    .frame(maxWidth: .infinity)
+            }
+
+            Button(role: .destructive) {
+                confirmingRemoval = true
+            } label: {
+                Image(systemName: "trash")
+                    .font(.system(size: 13, weight: .semibold))
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .padding(.bottom, player.state.status != .stopped ? 66 : 0)
+        .background(.bar)
+    }
+
+    private func toggle(_ track: Track) {
+        if selection.contains(track.id) { selection.remove(track.id) }
+        else { selection.insert(track.id) }
+    }
+
+    private func addSelection(to playlistID: UUID) {
+        // addTrack already skips tracks the playlist holds, so re-adding is safe.
+        for track in selectedTracks { library.addTrack(track.id, to: playlistID) }
+        endSelecting()
+    }
+
+    private func endSelecting() {
+        withAnimation(.easeInOut(duration: 0.15)) {
+            isSelecting = false
+            selection = []
         }
     }
 }
