@@ -23,6 +23,7 @@
 		1D8FD5B9E840758DE68B0F9D /* LibraryScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B714E2113B2E2AE3E7AA2C5 /* LibraryScanner.swift */; };
 		1EB650CCE3792386CB09E077 /* QueueAndPlaylistTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36D990598A3A601CDACE12FE /* QueueAndPlaylistTests.swift */; };
 		21B9D38D7040D5B18DE0077C /* OfflineCacheService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02A5964814A9722620E09632 /* OfflineCacheService.swift */; };
+		235BFF1BCA9314329479E44C /* CarPlayListTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86A3831C9A67A511D8848902 /* CarPlayListTests.swift */; };
 		28B64DB8FD0CC472C3A632B2 /* DuplicateFinderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCA63149A14BBE1D7290F800 /* DuplicateFinderView.swift */; };
 		2C2E7B2F9C5A8846851E7C91 /* LibraryViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 382D2D228ACDF8DE4FE0F414 /* LibraryViewModel.swift */; };
 		3057FC286219BFDE8591CDC6 /* SmartPlaylistEvaluatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB451A86C7C00F5A7022B7E7 /* SmartPlaylistEvaluatorTests.swift */; };
@@ -250,6 +251,7 @@
 		8021754E837AC35A13D7E8A0 /* album_minrs.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = album_minrs.jpg; sourceTree = "<group>"; };
 		839E22A26406A54FDE8D7484 /* GoogleSansBold.bundle */ = {isa = PBXFileReference; lastKnownFileType = wrapper.cfbundle; path = GoogleSansBold.bundle; sourceTree = "<group>"; };
 		85847FA5D2CA86253CA969E8 /* SmartPlaylistEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartPlaylistEditorView.swift; sourceTree = "<group>"; };
+		86A3831C9A67A511D8848902 /* CarPlayListTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CarPlayListTests.swift; sourceTree = "<group>"; };
 		872A4C505173E08A66620184 /* super_02.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = super_02.mp3; sourceTree = "<group>"; };
 		89319C2837E07DF5C6667BEE /* KenopsiaWatchScreenshots.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KenopsiaWatchScreenshots.swift; sourceTree = "<group>"; };
 		8A1176591A8B8352EFA40D64 /* artist_lee_rosevere.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = artist_lee_rosevere.jpg; sourceTree = "<group>"; };
@@ -703,6 +705,7 @@
 		FA097D30A8338D4D9B1958A6 /* KenopsiaTests */ = {
 			isa = PBXGroup;
 			children = (
+				86A3831C9A67A511D8848902 /* CarPlayListTests.swift */,
 				C0602E46D89B74C3211F9092 /* DuplicateFinderTests.swift */,
 				36D990598A3A601CDACE12FE /* QueueAndPlaylistTests.swift */,
 				EB451A86C7C00F5A7022B7E7 /* SmartPlaylistEvaluatorTests.swift */,
@@ -1028,6 +1031,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				235BFF1BCA9314329479E44C /* CarPlayListTests.swift in Sources */,
 				9887D4D45374E0F450BF20BA /* DuplicateFinderTests.swift in Sources */,
 				1EB650CCE3792386CB09E077 /* QueueAndPlaylistTests.swift in Sources */,
 				3057FC286219BFDE8591CDC6 /* SmartPlaylistEvaluatorTests.swift in Sources */,

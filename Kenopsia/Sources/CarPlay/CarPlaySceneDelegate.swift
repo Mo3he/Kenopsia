@@ -6,7 +6,9 @@ import UIKit
 // MARK: - CarPlaySceneDelegate
 /// Drives the Kenopsia CarPlay UI.
 ///
-/// Tabs (HIG order for audio apps): Recently Played, Library, Search, Now Playing.
+/// Two tabs: Recently Played and Library. Search is *not* a tab — `CPSearchTemplate`
+/// cannot be one — so it is pushed from a trailing nav bar button on both. Now Playing
+/// is not a tab either; it is the system-managed `CPNowPlayingTemplate`.
 /// `CPNowPlayingTemplate` reads from `MPNowPlayingInfoCenter` / `MPRemoteCommandCenter`,
 /// which `PlaybackService` already publishes. Browse lists, search, and recents drive
 /// playback by calling `PlaybackService.shared`.
@@ -18,6 +20,12 @@ final class CarPlaySceneDelegate: NSObject, CPTemplateApplicationSceneDelegate {
     private var artworkObserver: NSObjectProtocol?
     private var stateObserver: AnyCancellable?
     private var queueObserver: AnyCancellable?
+
+    /// Genres are derived by scanning every track, and `libraryContents()` runs
+    /// on each track change as well as on library edits. Cached so a 6000-track
+    /// library is not rescanned every time the song changes; invalidated by
+    /// `.libraryDidChange`, which is the only thing that can alter it.
+    private var cachedGenreCount: Int?
     private var recentsObserver: AnyCancellable?
 
     /// Persistent root tab templates. Kept across refreshes so we mutate their
@@ -47,7 +55,10 @@ final class CarPlaySceneDelegate: NSObject, CPTemplateApplicationSceneDelegate {
         libraryObserver = NotificationCenter.default.addObserver(
             forName: .libraryDidChange, object: nil, queue: .main
         ) { [weak self] _ in
-            Task { @MainActor [weak self] in self?.refreshTabs() }
+            Task { @MainActor [weak self] in
+                self?.cachedGenreCount = nil
+                self?.refreshTabs()
+            }
         }
 
         artworkObserver = NotificationCenter.default.addObserver(
@@ -282,7 +293,42 @@ final class CarPlaySceneDelegate: NSObject, CPTemplateApplicationSceneDelegate {
             self?.pushSongsList(); completion()
         }
 
-        let sections = [CPListSection(items: [albumsItem, artistsItem, playlistsItem, songsItem])]
+        let genreCount: Int
+        if let cached = cachedGenreCount {
+            genreCount = cached
+        } else {
+            genreCount = Self.genreBuckets(in: store.tracks.values).count
+            cachedGenreCount = genreCount
+        }
+        let genresItem = CPListItem(text: "Genres", detailText: "\(genreCount)")
+        genresItem.accessoryType = .disclosureIndicator
+        genresItem.setImage(UIImage(systemName: "guitars"))
+        genresItem.handler = { [weak self] _, completion in
+            self?.pushGenresList(); completion()
+        }
+
+        // Shuffle the whole library without drilling in first — the one thing
+        // you actually want while driving.
+        let shuffleAll = CPListItem(
+            text: "Shuffle All",
+            detailText: "\(songCount) song\(songCount == 1 ? "" : "s")"
+        )
+        shuffleAll.setImage(UIImage(systemName: "shuffle"))
+        shuffleAll.handler = { _, completion in
+            Task { @MainActor in
+                var all = Array(LibraryStore.shared.tracks.values)
+                all.shuffle()
+                PlaybackService.shared.queue.shuffleMode = .off
+                PlaybackService.shared.replace(with: all, startAt: 0)
+                completion()
+            }
+        }
+
+        var browseItems = [albumsItem, artistsItem, playlistsItem, songsItem]
+        if genreCount > 0 { browseItems.append(genresItem) }
+        var sections: [CPListSection] = []
+        if songCount > 0 { sections.append(CPListSection(items: [shuffleAll])) }
+        sections.append(CPListSection(items: browseItems))
         let empty: EmptyInfo
         if songCount == 0 {
             empty = EmptyInfo(
@@ -311,7 +357,7 @@ final class CarPlaySceneDelegate: NSObject, CPTemplateApplicationSceneDelegate {
         let albums = store.albums.values.sorted {
             $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending
         }
-        let limited = Array(albums.prefix(CPListTemplate.maximumItemCount))
+        let (limited, hiddenCount) = Self.limitedForDisplay(albums)
         let items: [CPListItem] = limited.map { album in
             let item = CPListItem(text: album.title,
                                   detailText: album.artist.isEmpty ? nil : album.artist)
@@ -322,7 +368,11 @@ final class CarPlaySceneDelegate: NSObject, CPTemplateApplicationSceneDelegate {
             }
             return item
         }
-        let template = CPListTemplate(title: "Albums", sections: [CPListSection(items: items)])
+        var sections = [CPListSection(items: items)]
+        if let notice = Self.truncationSection(hidden: hiddenCount) {
+            sections.append(notice)
+        }
+        let template = CPListTemplate(title: "Albums", sections: sections)
         registerArtworkRefreshers(
             for: template,
             items: zip(limited, items).map { (albumArtworkKey(for: $0.0), $0.1) }
@@ -336,7 +386,7 @@ final class CarPlaySceneDelegate: NSObject, CPTemplateApplicationSceneDelegate {
         let artists = store.artists.values.sorted {
             $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
         }
-        let limited = Array(artists.prefix(CPListTemplate.maximumItemCount))
+        let (limited, hiddenCount) = Self.limitedForDisplay(artists)
         let items: [CPListItem] = limited.map { artist in
             let count = artist.albumIDs.count
             let item = CPListItem(
@@ -350,7 +400,11 @@ final class CarPlaySceneDelegate: NSObject, CPTemplateApplicationSceneDelegate {
             }
             return item
         }
-        let template = CPListTemplate(title: "Artists", sections: [CPListSection(items: items)])
+        var sections = [CPListSection(items: items)]
+        if let notice = Self.truncationSection(hidden: hiddenCount) {
+            sections.append(notice)
+        }
+        let template = CPListTemplate(title: "Artists", sections: sections)
         registerArtworkRefreshers(
             for: template,
             items: zip(limited, items).map { (artistArtworkKey(for: $0.0), $0.1) }
@@ -364,7 +418,7 @@ final class CarPlaySceneDelegate: NSObject, CPTemplateApplicationSceneDelegate {
         let playlists = store.playlists.values.sorted {
             $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
         }
-        let limited = Array(playlists.prefix(CPListTemplate.maximumItemCount))
+        let (limited, hiddenCount) = Self.limitedForDisplay(playlists)
         let items: [CPListItem] = limited.map { playlist in
             let count = playlist.trackIDs.count
             let item = CPListItem(
@@ -378,7 +432,11 @@ final class CarPlaySceneDelegate: NSObject, CPTemplateApplicationSceneDelegate {
             }
             return item
         }
-        let template = CPListTemplate(title: "Playlists", sections: [CPListSection(items: items)])
+        var sections = [CPListSection(items: items)]
+        if let notice = Self.truncationSection(hidden: hiddenCount) {
+            sections.append(notice)
+        }
+        let template = CPListTemplate(title: "Playlists", sections: sections)
         interfaceController?.pushTemplate(template, animated: true, completion: nil)
     }
 
@@ -425,17 +483,92 @@ final class CarPlaySceneDelegate: NSObject, CPTemplateApplicationSceneDelegate {
     }
 
     private func makeFlatSongsTemplate(title: String, tracks: [Track]) -> CPListTemplate {
-        let limited = Array(tracks.prefix(CPListTemplate.maximumItemCount))
+        let (limited, hiddenCount) = Self.limitedForDisplay(tracks)
         let items: [CPListItem] = limited.enumerated().map { i, track in
             makeTrackItem(track, in: limited, startIndex: i, detailIsArtist: true)
         }
-        let template = CPListTemplate(title: title, sections: [CPListSection(items: items)])
+        var sections = [CPListSection(items: items)]
+        if let notice = Self.truncationSection(hidden: hiddenCount) {
+            sections.append(notice)
+        }
+        let template = CPListTemplate(title: title, sections: sections)
         registerArtworkRefreshers(
             for: template,
             items: zip(limited, items).map { (trackArtworkKey(for: $0.0), $0.1) }
         )
         fetchMissingArtwork(forTracksIn: template, tracks: limited)
         return template
+    }
+
+    // MARK: - Genres
+
+    /// Tracks bucketed by genre, ignoring blank tags. Derived on demand —
+    /// LibraryStore indexes albums and artists but not genres.
+    static func genreBuckets(in tracks: some Collection<Track>) -> [String: [Track]] {
+        var buckets: [String: [Track]] = [:]
+        for track in tracks {
+            let genre = track.genre.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !genre.isEmpty else { continue }
+            buckets[genre, default: []].append(track)
+        }
+        return buckets
+    }
+
+    private func pushGenresList() {
+        let store = LibraryStore.shared
+        let buckets = Self.genreBuckets(in: store.tracks.values)
+        let names = buckets.keys.sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+        let (limited, hiddenCount) = Self.limitedForDisplay(names)
+
+        let items: [CPListItem] = limited.map { genre in
+            let tracks = buckets[genre] ?? []
+            let item = CPListItem(text: genre, detailText: "\(tracks.count)")
+            item.accessoryType = .disclosureIndicator
+            item.handler = { [weak self] _, completion in
+                guard let self else { completion(); return }
+                let sorted = tracks.sorted {
+                    $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending
+                }
+                let tpl = self.makeFlatSongsTemplate(title: genre, tracks: sorted)
+                self.interfaceController?.pushTemplate(tpl, animated: true, completion: nil)
+                completion()
+            }
+            return item
+        }
+
+        var sections = [CPListSection(items: items)]
+        if let notice = Self.truncationSection(hidden: hiddenCount) {
+            sections.append(notice)
+        }
+        let template = CPListTemplate(title: "Genres", sections: sections)
+        interfaceController?.pushTemplate(template, animated: true, completion: nil)
+    }
+
+    // MARK: - Truncation
+
+    /// Trims a collection to CarPlay's row cap, reserving one row for the
+    /// "more not shown" notice when trimming is needed.
+    ///
+    /// `maximumItemCount` applies to the whole template, not to each section, so
+    /// taking `prefix(maximumItemCount)` and then appending a notice section
+    /// would put the template one row over the limit.
+    static func limitedForDisplay<T>(_ all: [T]) -> (shown: [T], hidden: Int) {
+        let cap = CPListTemplate.maximumItemCount
+        guard all.count > cap else { return (all, 0) }
+        let shown = Array(all.prefix(cap - 1))
+        return (shown, all.count - shown.count)
+    }
+
+    /// Where a list is cut short, say so — silently dropping rows leaves the
+    /// user believing a track simply is not in their library.
+    private static func truncationSection(hidden: Int) -> CPListSection? {
+        guard hidden > 0 else { return nil }
+        let item = CPListItem(
+            text: "\(hidden) more not shown",
+            detailText: "CarPlay limits list length. Use Search to find the rest."
+        )
+        item.isEnabled = false
+        return CPListSection(items: [item])
     }
 
     // MARK: - Album drill-down
