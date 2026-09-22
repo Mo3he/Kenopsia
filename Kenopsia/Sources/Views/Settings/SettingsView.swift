@@ -87,6 +87,10 @@ struct SettingsView: View {
 
                 Section("About") {
                     LabeledContent("Version", value: appVersion)
+                    Link(destination: URL(string: "https://mo3he.github.io/Kenopsia/")!) {
+                        Label("Website", systemImage: "globe")
+                            .foregroundStyle(.primary)
+                    }
                     Link(destination: URL(string: "mailto:feedback@mohome.net")!) {
                         Label("Send Feedback", systemImage: "envelope")
                             .foregroundStyle(.primary)
