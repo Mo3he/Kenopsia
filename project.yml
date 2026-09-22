@@ -79,6 +79,10 @@ targets:
       # xcframework lives in Frameworks/ in this repo.
       - framework: Frameworks/GoogleCast.xcframework
         embed: false
+      # GoogleCast's GCKMediaTextTrackStyle references MACaptionAppearance*.
+      # Older SDKs auto-linked MediaAccessibility; the iOS 27 SDK does not, so
+      # the static xcframework fails to link without an explicit dependency.
+      - sdk: MediaAccessibility.framework
       # Required by GoogleCast static xcframework
       - sdk: SystemConfiguration.framework
 
