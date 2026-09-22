@@ -9,6 +9,11 @@ struct LibraryView: View {
     @Environment(\..kAccent) var accent
     @State private var section: LibrarySection = .artists
     @FocusState private var isSearchFocused: Bool
+    @AppStorage("libraryLayout") private var layoutRaw = LibraryLayout.grid.rawValue
+
+    private var layout: LibraryLayout { LibraryLayout(rawValue: layoutRaw) ?? .grid }
+    /// Only the artwork-based sections can switch layout.
+    private var layoutToggleApplies: Bool { section == .artists || section == .albums }
 
     private var totalHours: Double {
         library.tracks.reduce(0) { $0 + $1.durationSeconds } / 3600
@@ -51,6 +56,15 @@ struct LibraryView: View {
             Text("LIBRARY")
                 .foregroundStyle(.primary)
             Spacer()
+            if layoutToggleApplies {
+                Button {
+                    layoutRaw = layout.toggled.rawValue
+                } label: {
+                    Image(systemName: layout.icon)
+                        .font(.system(size: 15))
+                }
+                .accessibilityLabel(layout.switchLabel)
+            }
         }
         .font(.system(size: 12, weight: .bold))
         .tracking(1.5)
@@ -242,6 +256,32 @@ struct LibraryView: View {
     }
 }
 
+// MARK: - LibraryLayout
+/// Artwork grid or linear rows, for the Artists and Albums sections only.
+/// Tracks, Playlists and History are always linear. Persisted under
+/// "libraryLayout" so the choice survives launches and is shared by both
+/// sections.
+enum LibraryLayout: String, CaseIterable {
+    case grid, list
+
+    var icon: String {
+        switch self {
+        case .grid: "square.grid.2x2"
+        case .list: "list.bullet"
+        }
+    }
+
+    /// The layout the toolbar button switches to.
+    var toggled: LibraryLayout { self == .grid ? .list : .grid }
+
+    var switchLabel: String {
+        switch self {
+        case .grid: "Switch to list view"
+        case .list: "Switch to grid view"
+        }
+    }
+}
+
 // MARK: - LibrarySection
 enum LibrarySection: CaseIterable {
     case artists, albums, tracks, playlists, history, folders
@@ -269,27 +309,54 @@ struct AlbumListView: View {
     private var letters: [String] { sections.map(\.letter) }
     private let columns = [GridItem(.flexible(), spacing: 14), GridItem(.flexible(), spacing: 14)]
 
+    @AppStorage("libraryLayout") private var layoutRaw = LibraryLayout.grid.rawValue
+    private var layout: LibraryLayout { LibraryLayout(rawValue: layoutRaw) ?? .grid }
+
+    /// The alpha-grouped sections, with each item rendered by `cell`. Shared by
+    /// the grid and list layouts so the sectioning and scrubber anchors stay
+    /// identical between them.
+    @ViewBuilder
+    private func sectionedContent<Cell: View>(
+        @ViewBuilder cell: @escaping (Album) -> Cell
+    ) -> some View {
+        ForEach(sections, id: \.letter) { section in
+            Section {
+                ForEach(section.items) { album in
+                    NavigationLink(destination: AlbumDetailView(album: album)) {
+                        cell(album)
+                    }
+                    .buttonStyle(.plain)
+                }
+            } header: {
+                Text(section.letter)
+                    .id(section.letter)
+                    .font(.system(size: 11, weight: .bold))
+                    .tracking(1.5)
+                    .foregroundStyle(.primary.opacity(0.35))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.top, 6)
+            }
+        }
+    }
+
     var body: some View {
         ZStack(alignment: .trailing) {
             ScrollViewReader { proxy in
                 ScrollView {
-                    LazyVGrid(columns: columns, spacing: 12) {
-                        ForEach(sections, id: \.letter) { section in
-                            Section {
-                                ForEach(section.items) { album in
-                                    NavigationLink(destination: AlbumDetailView(album: album)) {
-                                        AlbumGridCell(album: album)
-                                    }
-                                    .buttonStyle(.plain)
+                    Group {
+                        if layout == .grid {
+                            LazyVGrid(columns: columns, spacing: 12) {
+                                sectionedContent { album in AlbumGridCell(album: album) }
+                            }
+                        } else {
+                            LazyVStack(spacing: 0) {
+                                // Rows size to their content, so without this
+                                // they centre with a ragged left edge. AlbumRowView
+                                // gets full width for free from List elsewhere.
+                                sectionedContent { album in
+                                    AlbumRowView(album: album)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
                                 }
-                            } header: {
-                                Text(section.letter)
-                                    .id(section.letter)
-                                    .font(.system(size: 11, weight: .bold))
-                                    .tracking(1.5)
-                                    .foregroundStyle(.primary.opacity(0.35))
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .padding(.top, 6)
                             }
                         }
                     }
@@ -463,27 +530,54 @@ struct ArtistListView: View {
     private var letters: [String] { sections.map(\.letter) }
     private let columns = [GridItem(.flexible(), spacing: 14), GridItem(.flexible(), spacing: 14)]
 
+    @AppStorage("libraryLayout") private var layoutRaw = LibraryLayout.grid.rawValue
+    private var layout: LibraryLayout { LibraryLayout(rawValue: layoutRaw) ?? .grid }
+
+    /// The alpha-grouped sections, with each item rendered by `cell`. Shared by
+    /// the grid and list layouts so the sectioning and scrubber anchors stay
+    /// identical between them.
+    @ViewBuilder
+    private func sectionedContent<Cell: View>(
+        @ViewBuilder cell: @escaping (Artist) -> Cell
+    ) -> some View {
+        ForEach(sections, id: \.letter) { section in
+            Section {
+                ForEach(section.items) { artist in
+                    NavigationLink(destination: ArtistDetailView(artist: artist)) {
+                        cell(artist)
+                    }
+                    .buttonStyle(.plain)
+                }
+            } header: {
+                Text(section.letter)
+                    .id(section.letter)
+                    .font(.system(size: 11, weight: .bold))
+                    .tracking(1.5)
+                    .foregroundStyle(.primary.opacity(0.35))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.top, 6)
+            }
+        }
+    }
+
     var body: some View {
         ZStack(alignment: .trailing) {
             ScrollViewReader { proxy in
                 ScrollView {
-                    LazyVGrid(columns: columns, spacing: 12) {
-                        ForEach(sections, id: \.letter) { section in
-                            Section {
-                                ForEach(section.items) { artist in
-                                    NavigationLink(destination: ArtistDetailView(artist: artist)) {
-                                        ArtistGridCell(artist: artist)
-                                    }
-                                    .buttonStyle(.plain)
+                    Group {
+                        if layout == .grid {
+                            LazyVGrid(columns: columns, spacing: 12) {
+                                sectionedContent { artist in ArtistGridCell(artist: artist) }
+                            }
+                        } else {
+                            LazyVStack(spacing: 0) {
+                                // Rows size to their content, so without this
+                                // they centre with a ragged left edge. AlbumRowView
+                                // gets full width for free from List elsewhere.
+                                sectionedContent { artist in
+                                    ArtistRowView(artist: artist)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
                                 }
-                            } header: {
-                                Text(section.letter)
-                                    .id(section.letter)
-                                    .font(.system(size: 11, weight: .bold))
-                                    .tracking(1.5)
-                                    .foregroundStyle(.primary.opacity(0.35))
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .padding(.top, 6)
                             }
                         }
                     }
