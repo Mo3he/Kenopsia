@@ -1141,6 +1141,7 @@
 				CODE_SIGN_ENTITLEMENTS = Kenopsia/Kenopsia.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				ENABLE_DEBUG_DYLIB = NO;
+				EXCLUDED_SOURCE_FILE_NAMES = "*.mp3 album_*.jpg artist_*.jpg virtual_*.jpg";
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"Frameworks\"",

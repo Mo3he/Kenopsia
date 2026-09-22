@@ -58,6 +58,19 @@ targets:
         INFOPLIST_KEY_UIBackgroundModes: audio
         # Required for the static GoogleCast.xcframework
         OTHER_LDFLAGS: "-ObjC -lc++"
+      configs:
+        Release:
+          # DemoAssets is ~183 MB of sample audio and artwork used only by the
+          # screenshot UI tests, which run against the Debug config. Without this
+          # it is copied into release builds too: the shipped 1.1 archive was
+          # 193 MB, of which 25 demo MP3s were the bulk.
+          # The #if DEBUG guards on DemoDataProvider exclude the *code*; only
+          # this excludes the *resources*.
+          # XcodeGen flattens these into individual file references, so the
+          # patterns must match base names — a path glob like */DemoAssets/*
+          # matches nothing. No other loose .mp3/.jpg resources are bundled;
+          # app imagery lives in Assets.xcassets.
+          EXCLUDED_SOURCE_FILE_NAMES: "*.mp3 album_*.jpg artist_*.jpg virtual_*.jpg"
     linkedFrameworks:
     entitlements:
       path: Kenopsia/Kenopsia.entitlements
