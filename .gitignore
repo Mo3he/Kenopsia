@@ -1,7 +1,11 @@
 # Xcode derived data
-*.xcodeproj/xcuserdata/
-*.xcworkspace/xcuserdata/
-*.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
+# Leading **/ matters: a pattern containing a slash is anchored to this
+# directory, so the un-prefixed forms missed the nested
+# Kenopsia.xcodeproj/project.xcworkspace/xcuserdata/ and that state file
+# was tracked for months.
+**/*.xcodeproj/xcuserdata/
+**/*.xcworkspace/xcuserdata/
+**/*.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
 DerivedData/
 build/
 
