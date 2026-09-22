@@ -27,6 +27,7 @@
     --accent-ink: #003c42;
     --coffee: #ffdd00;
     --coffee-ink: #1a1400;
+    --sponsor: #ea4aaa;
     --radius: 16px;
     --maxw: 1080px;
   }
@@ -67,7 +68,10 @@
   .wrap {
     max-width: var(--maxw);
     margin: 0 auto;
-    padding: 0 16px;
+    /* padding-inline, not the shorthand: this is a class selector, so a
+       shorthand here would outrank `section { padding: 40px 0 }` and flatten
+       the vertical rhythm on every section. */
+    padding-inline: 16px;
   }
 
   a { color: inherit; }
@@ -152,6 +156,12 @@
     background: transparent;
   }
   .btn-ghost:hover { color: var(--text); }
+
+  .btn-sponsor {
+    background: var(--sponsor);
+    color: #fff;
+    box-shadow: 0 6px 20px rgba(234, 74, 170, 0.32);
+  }
 
   .free-note {
     margin: 16px 0 0;
@@ -244,6 +254,9 @@
   /* ---------- coffee ---------- */
 
   .coffee {
+    /* A little beyond the standard section gap, so the support block reads as
+       its own moment rather than a seventh feature card. */
+    margin-top: 16px;
     background: var(--surface);
     border: 1px solid var(--line);
     border-radius: 22px;
@@ -406,7 +419,12 @@
         </svg>
         Buy me a coffee
       </a>
-      <a class="btn btn-ghost" href="https://github.com/sponsors/Mo3he">Sponsor on GitHub</a>
+      <a class="btn btn-sponsor" href="https://github.com/sponsors/Mo3he">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+        </svg>
+        Sponsor on GitHub
+      </a>
     </div>
   </div>
 </section>
