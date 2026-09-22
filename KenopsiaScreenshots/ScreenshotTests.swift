@@ -148,4 +148,34 @@ final class ScreenshotTests: XCTestCase {
         navigateToSection("Settings", tabLabel: "Settings")
         snapshot("10_settings")
     }
+
+    func test11_LibraryGenres() throws {
+        selectLibrarySection("GENRES")
+        Thread.sleep(forTimeInterval: 0.8)
+        snapshot("11_library_genres")
+    }
+
+    func test12_MultiSelect() throws {
+        selectLibrarySection("TRACKS")
+        let select = app.buttons["Select"].firstMatch
+        guard select.waitForExistence(timeout: 5) else {
+            XCTFail("Select button not found in the track list")
+            return
+        }
+        select.tap()
+        Thread.sleep(forTimeInterval: 0.6)
+
+        // Tap rows by title rather than by index: the action bar appears after the
+        // first selection and shifts everything below it, so positional taps land
+        // on the wrong rows.
+        for title in ["After Midnight", "Bloom", "Blackout"] {
+            let row = app.staticTexts[title].firstMatch
+            if row.waitForExistence(timeout: 2) {
+                row.tap()
+                Thread.sleep(forTimeInterval: 0.4)
+            }
+        }
+        Thread.sleep(forTimeInterval: 0.6)
+        snapshot("12_multi_select")
+    }
 }
