@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kenopsia: a music player for the music you own</title>
+<meta name="description" content="A source-agnostic music player for iPhone, iPad, Apple Watch and CarPlay. Local files, NAS, Subsonic, iCloud Drive and more. Free, no ads, no tracking.">
+
+<meta property="og:title" content="Kenopsia">
+<meta property="og:description" content="A music player for the music you actually own. Free, no ads, no tracking.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://mo3he.github.io/Kenopsia/">
+<meta property="og:image" content="https://mo3he.github.io/Kenopsia/assets/now-playing.jpg">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+
+<style>
+  :root {
+    --bg: #f5f6f7;
+    --surface: #ffffff;
+    --text: #14161a;
+    --muted: #5d636e;
+    --line: rgba(20, 22, 26, 0.10);
+    --accent: #00d9e6;
+    --accent-ink: #003c42;
+    --coffee: #ffdd00;
+    --coffee-ink: #1a1400;
+    --radius: 16px;
+    --maxw: 1080px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0e1013;
+      --surface: #171a1f;
+      --text: #f2f4f7;
+      --muted: #a4abb8;
+      --line: rgba(255, 255, 255, 0.12);
+      --accent: #22e0ef;
+      --accent-ink: #00252a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0e1013;
+    --surface: #171a1f;
+    --text: #f2f4f7;
+    --muted: #a4abb8;
+    --line: rgba(255, 255, 255, 0.12);
+    --accent: #22e0ef;
+    --accent-ink: #00252a;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: var(--maxw);
+    margin: 0 auto;
+    padding: 0 16px;
+  }
+
+  a { color: inherit; }
+
+  /* ---------- hero ---------- */
+
+  header.hero {
+    text-align: center;
+    padding: 72px 0 8px;
+  }
+
+  .mark {
+    width: 96px; height: 96px;
+    margin: 0 auto 24px;
+    display: block;
+    border-radius: 22px;
+    box-shadow: 0 12px 34px rgba(0, 0, 0, 0.18);
+  }
+
+  h1 {
+    margin: 0 0 14px;
+    font-size: clamp(2.4rem, 7vw, 3.6rem);
+    letter-spacing: -0.03em;
+    line-height: 1.05;
+    font-weight: 700;
+  }
+
+  .tagline {
+    margin: 0 auto 10px;
+    max-width: 24ch;
+    font-size: clamp(1.15rem, 3.4vw, 1.5rem);
+    line-height: 1.35;
+    letter-spacing: -0.01em;
+  }
+
+  .sub {
+    margin: 0 auto 30px;
+    max-width: 52ch;
+    color: var(--muted);
+  }
+
+  /* ---------- buttons ---------- */
+
+  .cta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    padding: 13px 22px;
+    border-radius: 999px;
+    text-decoration: none;
+    font-weight: 650;
+    font-size: 0.97rem;
+    letter-spacing: -0.01em;
+    border: 1px solid transparent;
+    transition: transform .14s ease, box-shadow .14s ease;
+  }
+  .btn:hover { transform: translateY(-1px); }
+  .btn:active { transform: translateY(0); }
+  .btn svg { width: 18px; height: 18px; flex: none; }
+
+  .btn-primary {
+    background: var(--text);
+    color: var(--bg);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.16);
+  }
+  .btn-coffee {
+    background: var(--coffee);
+    color: var(--coffee-ink);
+    box-shadow: 0 6px 20px rgba(255, 221, 0, 0.32);
+  }
+  .btn-ghost {
+    border-color: var(--line);
+    color: var(--muted);
+    background: transparent;
+  }
+  .btn-ghost:hover { color: var(--text); }
+
+  .free-note {
+    margin: 16px 0 0;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+
+  /* ---------- shots ---------- */
+
+  .shots {
+    display: flex;
+    gap: 18px;
+    overflow-x: auto;
+    padding: 46px 16px 30px;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .shots::-webkit-scrollbar { display: none; }
+
+  .shot {
+    margin: 0;
+    flex: 0 0 auto;
+    width: min(230px, 62vw);
+    scroll-snap-align: center;
+    text-align: center;
+  }
+  .shot img {
+    width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 22px;
+    border: 1px solid var(--line);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.16);
+    background: var(--surface);
+  }
+  .shot span {
+    display: block;
+    margin-top: 12px;
+    font-size: 0.8rem;
+    color: var(--muted);
+    letter-spacing: 0.02em;
+  }
+
+  @media (min-width: 900px) {
+    .shots { justify-content: center; overflow-x: visible; }
+  }
+
+  /* ---------- sections ---------- */
+
+  section { padding: 40px 0; }
+
+  h2 {
+    font-size: clamp(1.45rem, 4vw, 1.9rem);
+    letter-spacing: -0.02em;
+    margin: 0 0 8px;
+    text-align: center;
+  }
+  .lede {
+    text-align: center;
+    color: var(--muted);
+    max-width: 56ch;
+    margin: 0 auto 30px;
+  }
+
+  .grid {
+    display: grid;
+    gap: 14px;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 20px;
+  }
+  .card h3 {
+    margin: 0 0 7px;
+    font-size: 1rem;
+    letter-spacing: -0.01em;
+  }
+  .card p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.92rem;
+    line-height: 1.55;
+  }
+
+  /* ---------- coffee ---------- */
+
+  .coffee {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    padding: 40px 26px;
+    text-align: center;
+  }
+  .coffee h2 { margin-bottom: 14px; }
+  .coffee p {
+    color: var(--muted);
+    max-width: 50ch;
+    margin: 0 auto 12px;
+  }
+  .coffee p.last { margin-bottom: 26px; }
+  .coffee strong { color: var(--text); font-weight: 600; }
+
+  /* ---------- footer ---------- */
+
+  footer {
+    padding: 44px 0 56px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.87rem;
+  }
+  footer nav {
+    display: flex;
+    gap: 22px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+  }
+  footer a { text-decoration: none; }
+  footer a:hover { color: var(--text); }
+  .formats {
+    max-width: 58ch;
+    margin: 0 auto;
+    font-size: 0.8rem;
+    opacity: 0.75;
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <picture>
+      <source srcset="assets/icon-dark.png" media="(prefers-color-scheme: dark)">
+      <img class="mark" src="assets/icon-light.png" width="96" height="96"
+           alt="Kenopsia app icon">
+    </picture>
+
+    <h1>Kenopsia</h1>
+    <p class="tagline">A music player for the music you actually own.</p>
+    <p class="sub">
+      Local files, a NAS in the cupboard, a Subsonic server, iCloud Drive, Backblaze.
+      Add a source once and it all lands in one library.
+    </p>
+
+    <div class="cta-row">
+      <a class="btn btn-primary" href="https://apps.apple.com/se/app/kenopsia/id6771028724?l=en-GB">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M16.365 1.43c0 1.14-.42 2.2-1.12 3.02-.84.99-2.2 1.76-3.32 1.67-.14-1.1.4-2.26 1.07-3.02.77-.88 2.13-1.55 3.37-1.67zM20.9 17.09c-.6 1.38-.88 2-1.65 3.22-1.08 1.7-2.6 3.81-4.48 3.83-1.67.02-2.1-1.09-4.37-1.08-2.27.01-2.74 1.1-4.41 1.08-1.88-.02-3.32-1.93-4.4-3.62C-1.43 16.8-1.75 11.2.44 8.22c1.1-1.5 2.83-2.45 4.46-2.45 1.66 0 2.7 1.09 4.07 1.09 1.33 0 2.14-1.09 4.06-1.09 1.45 0 2.99.79 4.08 2.15-3.59 1.97-3.01 7.09.79 8.17z"/>
+        </svg>
+        Download on the App Store
+      </a>
+      <a class="btn btn-coffee" href="https://buymeacoffee.com/mo3he">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
+          <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4z"></path>
+          <line x1="6" y1="1" x2="6" y2="4"></line>
+          <line x1="10" y1="1" x2="10" y2="4"></line>
+          <line x1="14" y1="1" x2="14" y2="4"></line>
+        </svg>
+        Buy me a coffee
+      </a>
+    </div>
+
+    <p class="free-note">Free · No ads · No accounts · No tracking</p>
+  </div>
+</header>
+
+<div class="shots">
+  <figure class="shot">
+    <img src="assets/now-playing.jpg" width="860" height="1869" loading="lazy"
+         alt="Kenopsia now playing screen showing album artwork and playback controls">
+    <span>Now Playing</span>
+  </figure>
+  <figure class="shot">
+    <img src="assets/library.jpg" width="860" height="1869" loading="lazy"
+         alt="Album grid in the Kenopsia library">
+    <span>Your library</span>
+  </figure>
+  <figure class="shot">
+    <img src="assets/eq.jpg" width="860" height="1869" loading="lazy"
+         alt="Ten band parametric equaliser">
+    <span>10-band EQ</span>
+  </figure>
+  <figure class="shot">
+    <img src="assets/sources.jpg" width="860" height="1869" loading="lazy"
+         alt="Sources screen listing connected music sources">
+    <span>Every source</span>
+  </figure>
+</div>
+
+<section class="wrap">
+  <h2>Built for people with a music collection</h2>
+  <p class="lede">
+    Not a streaming service. Not a front end for someone else's catalogue.
+    Just a good player for the files you've spent years collecting.
+  </p>
+
+  <div class="grid">
+    <div class="card">
+      <h3>Play from anywhere</h3>
+      <p>Local files, Subsonic and Navidrome, NAS over DLNA, iCloud Drive, Backblaze B2, your Apple Music library, and web radio.</p>
+    </div>
+    <div class="card">
+      <h3>Proper playback</h3>
+      <p>Gapless with optional crossfade, a 10-band parametric EQ, and ReplayGain volume levelling. FLAC, ALAC, WAV and AIFF included.</p>
+    </div>
+    <div class="card">
+      <h3>A library that behaves</h3>
+      <p>Browse by artist, album, genre, playlist or folder. Smart playlists, a tag editor, artwork auto-fetch, and a duplicate finder.</p>
+    </div>
+    <div class="card">
+      <h3>In the car and on your wrist</h3>
+      <p>Full CarPlay browsing with search and Shuffle All, an Apple Watch companion, a Home Screen widget, AirPlay and Chromecast.</p>
+    </div>
+    <div class="card">
+      <h3>Yours, offline</h3>
+      <p>Pin a source for offline listening, or drag files straight in over Wi-Fi from any browser on your network.</p>
+    </div>
+    <div class="card">
+      <h3>Private by design</h3>
+      <p>No account to create. Nothing tracked, nothing sold. Your library stays on your device and credentials live in the iOS Keychain.</p>
+    </div>
+  </div>
+</section>
+
+<section class="wrap">
+  <div class="coffee">
+    <h2>Kenopsia is free</h2>
+    <p>
+      No ads, no subscription, no upsell, and nothing harvested from you. It's built and
+      maintained by <strong>one person</strong>, in evenings and weekends, mostly in response
+      to emails from people using it.
+    </p>
+    <p class="last">
+      If it's earned a place on your phone, a coffee keeps it going.
+    </p>
+    <div class="cta-row">
+      <a class="btn btn-coffee" href="https://buymeacoffee.com/mo3he">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
+          <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4z"></path>
+          <line x1="6" y1="1" x2="6" y2="4"></line>
+          <line x1="10" y1="1" x2="10" y2="4"></line>
+          <line x1="14" y1="1" x2="14" y2="4"></line>
+        </svg>
+        Buy me a coffee
+      </a>
+      <a class="btn btn-ghost" href="https://github.com/sponsors/Mo3he">Sponsor on GitHub</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <nav>
+      <a href="https://apps.apple.com/se/app/kenopsia/id6771028724?l=en-GB">App Store</a>
+      <a href="https://github.com/Mo3he/Kenopsia">GitHub</a>
+      <a href="privacy">Privacy</a>
+      <a href="mailto:feedback@mohome.net">Contact</a>
+    </nav>
+    <p class="formats">
+      Requires iOS 17 or later. DSD, Ogg Vorbis, Opus, WMA and Musepack are not supported,
+      because iOS cannot decode them.
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>
