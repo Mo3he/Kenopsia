@@ -1,4 +1,5 @@
 import UIKit
+import ImageIO
 
 // MARK: - ArtworkCache
 /// Multi-resolution artwork cache backed by disk.
@@ -43,6 +44,31 @@ final class ArtworkCache {
         guard let data = try? Data(contentsOf: url), let img = UIImage(data: data) else { return nil }
         cache(for: size).setObject(img, forKey: nsKey)
         return img
+    }
+
+    /// Pixel dimensions of a stored image, read from the file header without
+    /// decoding the pixels.
+    ///
+    /// `fullImage(forKey:)` decodes a 1000×1000 JPEG into a ~4 MB backing store.
+    /// Calling it once is fine; calling it for every album in a library just to
+    /// read `.size` allocates gigabytes and gets the app jetsam-killed. This
+    /// reads the same dimensions from the JPEG header — no pixel buffer, no
+    /// cache pollution.
+    ///
+    /// Returns nil if no artwork is stored for `key` at that size.
+    func pixelSize(forKey key: String, size: ArtSize = .full) -> CGSize? {
+        let nsKey = (key + size.suffix) as NSString
+        // An already-decoded image in the cache answers for free.
+        if let cached = cache(for: size).object(forKey: nsKey) { return cached.size }
+        let url = diskURL.appendingPathComponent(safeName(nsKey as String)).appendingPathExtension("jpg")
+        // kCGImageSourceShouldCache: false keeps ImageIO from decoding pixels.
+        let options = [kCGImageSourceShouldCache: false] as CFDictionary
+        guard let source = CGImageSourceCreateWithURL(url as CFURL, options),
+              let props = CGImageSourceCopyPropertiesAtIndex(source, 0, options) as? [CFString: Any],
+              let width = props[kCGImagePropertyPixelWidth] as? CGFloat,
+              let height = props[kCGImagePropertyPixelHeight] as? CGFloat
+        else { return nil }
+        return CGSize(width: width, height: height)
     }
 
     // MARK: - Notification

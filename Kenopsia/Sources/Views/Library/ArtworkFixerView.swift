@@ -127,13 +127,20 @@ struct ArtworkFixerView: View {
 
     // MARK: - Scan
     private func scan() async {
-        isScanning = true
+        await MainActor.run { isScanning = true }
+        let albums = await MainActor.run { library.albums }
         var found: [ArtworkProblem] = []
-        for album in library.albums {
-            if let p = checkArtwork(album: album) { found.append(p) }
+        // autoreleasepool per album so any transient ImageIO allocations are
+        // released as we go rather than piling up until the loop ends. With a
+        // 6000-track library this loop runs several hundred times.
+        for album in albums {
+            autoreleasepool {
+                if let p = checkArtwork(album: album) { found.append(p) }
+            }
         }
+        let sorted = found.sorted { $0.severity.sortPriority > $1.severity.sortPriority }
         await MainActor.run {
-            problems = found.sorted { $0.severity.sortPriority > $1.severity.sortPriority }
+            problems = sorted
             isScanning = false
         }
     }
@@ -142,10 +149,11 @@ struct ArtworkFixerView: View {
         guard let key = album.artworkCacheKey else {
             return ArtworkProblem(album: album, severity: .missing)
         }
-        guard let image = ArtworkCache.shared.fullImage(forKey: key) else {
+        // Read the dimensions from the file header. Decoding the image here
+        // (fullImage) allocates ~4 MB per album and kills large libraries.
+        guard let size = ArtworkCache.shared.pixelSize(forKey: key) else {
             return ArtworkProblem(album: album, severity: .missing)
         }
-        let size = image.size
         if size.width < minResolution || size.height < minResolution {
             return ArtworkProblem(
                 album: album,
