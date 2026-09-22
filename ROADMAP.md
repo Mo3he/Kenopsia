@@ -4,6 +4,31 @@ Features planned for future releases, along with implementation notes to make th
 
 ---
 
+## Crossfade Breaks After a Route Change 🐞 Bug
+
+Reported by a user (Roy, Sep 2026): crossfade works on the phone and on wired headphones, but hard-cuts over AirPlay and wired CarPlay.
+
+Not a routing or entitlement issue — crossfade is pure software (two `AVAudioPlayerNode`s ramped into `playerMixer`), so the output route cannot override it. The trigger is the route *change*: it fires `.AVAudioEngineConfigurationChange`, the engine restarts, and `PlaybackService.handleEngineConfigChange()` has two defects.
+
+| # | Defect | Effect |
+|---|---|---|
+| 1 | `positionOffset` is never updated | `resumeActivePlayer` resets the node's `sampleTime` to 0, but position is computed as `sampleTime / sampleRate + positionOffset`. Reported position silently drops by the resume offset, so the crossfade trigger (`seconds >= duration - xfade`) never fires. Every other resume/seek path sets it — this one is the outlier. |
+| 2 | `preScheduleNext` is never called | The engine restart clears the staging node's buffers, but nothing clears `stagingIsReady`. `transition(crossfade:)` reports success and fades in a silent player; the 1-frame sentinel fires immediately and falls through to a `play()` restart. |
+
+### The fix
+
+- `handleEngineConfigChange()`: set `positionOffset = position` alongside the `resumeActivePlayer` call, and re-run `preScheduleNext(next)` after a successful resume.
+- Clear `stagingIsReady` in `AudioEngine.resumeActivePlayer` so a stale `true` can never survive a restart.
+
+### Notes
+
+- Either defect alone produces the hard cut; they compound.
+- Predicts a testable signature: starting a track *while already* connected should crossfade correctly. Only a mid-playback route switch breaks it, and it stays broken for the rest of that session.
+- Not reproducible in the simulator — needs a real head unit and an AirPlay target.
+- Secondary hardening: the ramp runs as 61 `DispatchQueue.main.asyncAfter` blocks in `AudioEngine.crossfadeToStaging()`. Under CarPlay the main thread also drives template refreshes and artwork fetches, so steps can bunch. That degrades a fade; it does not eliminate one.
+
+---
+
 ## Cloud Storage: Dropbox, Google Drive, OneDrive
 
 Support for browsing and streaming music from third-party cloud storage providers via OAuth 2.0.
@@ -17,6 +42,10 @@ All three providers were fully implemented and working:
 | Dropbox | `POST /2/files/search_v2` | `POST /2/files/get_temporary_link` | Authorization Code + PKCE |
 | Google Drive | `GET /drive/v3/files` (mime filter) | `GET /drive/v3/files/{id}?alt=media` (downloads to tmp) | Authorization Code |
 | OneDrive (Graph) | `GET /me/drive/root/search(q='')` | `GET /me/drive/items/{id}/content` (302 redirect) | Authorization Code |
+
+**The code is recoverable.** All three providers are intact in the initial commit `e2d95a4` (`Loudmouth/Sources/Services/SourceResolver.swift` — `fetchDropboxTracks`, `fetchGoogleDriveTracks`, `fetchOneDriveTracks`), removed in `41ff9ee`. This is a restore plus API-key registration, not a rebuild.
+
+Google Drive specifically requested by a user (Roy, Sep 2026). Worth testing the zero-cost workaround first: the local-folder picker uses `.fileImporter` with `[.folder]`, so a Google Drive folder exposed through the Files app File Provider may already be addable as a Local source today.
 
 ### To restore
 
@@ -64,6 +93,39 @@ All three providers were fully implemented and working:
 
 ---
 
+## Library List / Grid Toggle
+
+Requested by a user (Roy, Sep 2026): let Artists and Albums display as a linear list, like the Songs view, instead of the artwork grid.
+
+Both are currently hard-coded to a 2-column `LazyVGrid` in `Kenopsia/Sources/Views/Library/LibraryView.swift` (`AlbumsView`, `ArtistsView`). No layout preference exists.
+
+### Notes
+
+- Row-style cells already exist alongside the grid cells in the same file, so this is likely a toggle plus a persisted preference rather than new cell work — confirm before scoping.
+- Persist with `@AppStorage` so it survives launches. Decide whether Albums and Artists get independent settings or share one.
+- Put the control in the navigation bar, not Settings — it is a view-level preference.
+
+---
+
+## Duplicate Song Detection
+
+Requested by a user (Roy, Sep 2026).
+
+Nothing exists today. `LibraryStore` dedupes by URI on rescan, so a rescan will not double-add the same file, but the same song existing as two *different* files is never detected.
+
+### Approach
+
+1. Normalize `artist` + `title` — case-fold, strip punctuation and leading articles, trim `feat.` suffixes.
+2. Group, then confirm with `durationSeconds` within a small tolerance.
+3. Surface a review screen — never auto-delete. Show format, bitrate, file size and source per copy so the user picks the keeper.
+
+### Notes
+
+- Fits the existing `MetadataFixerView` / `ArtworkFixerView` pattern; model the UI on those.
+- Acoustic fingerprinting is more accurate but needs a service. Tag-based matching covers the common case: an album ripped twice, or the same track present in both a local folder and a NAS.
+
+---
+
 ## Apple Music / MusicKit Integration ✅ Done
 
 Browse and play tracks from the user's Apple Music library using the MusicKit framework.
@@ -106,6 +168,18 @@ Audio app template for CarPlay with Now Playing and library browsing.
 ### Notes
 - `com.apple.developer.carplay-audio` must be enabled in the Apple Developer portal for the app's identifier before deploying to a real device (no special approval required for audio apps)
 - Test with the CarPlay Simulator: Xcode → Hardware → CarPlay
+
+---
+
+### Planned enhancements
+
+Requested by a user (Roy, Sep 2026): "a more complete CarPlay interface." The shipped 1.1 build (archived and uploaded 2026-06-03) already has Recents, Library with Albums/Artists/Playlists/Songs, search, and Now Playing. Remaining gaps:
+
+- Only two tabs are constructed in `buildRootTemplate()`, though the file header comment claims four
+- No Genres browsing
+- No shuffle-all entry point
+- `CPListTemplate.maximumItemCount` truncation is silent — the user is never told a list was cut off
+- **Sitting uncommitted in the working tree:** `refreshNowPlayingButtonAvailability()` gates the Up Next / Album-Artist buttons on real queue state. Shipped 1.1 enables both unconditionally, so they look tappable but do nothing on a single-track queue or web radio. Ship this.
 
 ---
 
