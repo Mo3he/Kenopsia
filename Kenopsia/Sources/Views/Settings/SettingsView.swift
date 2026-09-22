@@ -82,6 +82,7 @@ struct SettingsView: View {
                 Section("Library") {
                     NavigationLink("Artwork Fixer") { ArtworkFixerView() }
                     NavigationLink("Metadata Fixer") { MetadataFixerView() }
+                    NavigationLink("Duplicates") { DuplicateFinderView() }
                 }
 
                 Section("About") {
