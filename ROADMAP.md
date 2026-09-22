@@ -93,6 +93,69 @@ Google Drive specifically requested by a user (Roy, Sep 2026). Worth testing the
 
 ---
 
+## AVAudioSession Activated on the Main Thread ⚠️ Hang Risk
+
+Xcode's runtime diagnostics flag `AudioEngine.configureAudioSession()`:
+
+```
+SessionCore.mm:631          setCategory  — can lead to UI unresponsiveness
+AVAudioSession_iOS.mm:978   setActive    — consider the async activate API
+```
+
+All on Thread 1. `setActive(true)` can block for hundreds of milliseconds,
+worst of all while a route is being established — exactly the AirPlay / CarPlay
+moment the crossfade fix also lives in.
+
+### Where it is called
+
+| Caller | When |
+|---|---|
+| `PlaybackService.init` | App launch. Guarantees the session is configured for the AVPlayer path (streams, web radio), which never starts the engine and would otherwise play silently under `.soloAmbient`. |
+| `AudioEngine.start()` | Whenever the engine is not running: launch, route change, interruption recovery. Guarded by `!isRunning`, so it is *not* a per-track hot path. |
+
+### Why this was not fixed inline
+
+The ordering is load-bearing and documented in the code: the category must be
+set before `engine.start()` so nil-format connections negotiate against the real
+hardware format, otherwise nodes silently disconnect. Making activation
+asynchronous means making `start()` async, which ripples into `play(file:)` and
+the whole synchronous startup path — the most delicate code in the app, and the
+part that already carries two route-change fixes that have not yet been
+confirmed on hardware.
+
+Caching "already configured" to skip redundant calls is *not* a safe shortcut:
+the session genuinely must be reactivated after an interruption ends, so a
+blanket flag would break resume-after-phone-call.
+
+### Doing it properly
+
+1. Activate once, off the main thread, early in app launch.
+2. Keep `setCategory` synchronous where format negotiation depends on it.
+3. Track activation state against `AVAudioSession.interruptionNotification` so
+   reactivation still happens exactly when it is required.
+4. Test on a device across: launch, backgrounding, phone-call interruption,
+   headphone plug/unplug, AirPlay engage, CarPlay connect.
+
+Step 4 is the real cost. This wants a focused pass with hardware, not a
+drive-by.
+
+---
+
+## GCKUICastButton.triggersDefaultCastDialog Deprecated
+
+`CastButtonView.swift:44`. The only warning in our own code.
+
+It is used deliberately, and the file documents why: `presentCastDialog()` walks
+from the key window's root view controller, so the Cast dialog appears *behind*
+the Now Playing sheet. `triggersDefaultCastDialog` walks the responder chain
+instead, finds `CastButtonHostVC` inside the sheet, and presents correctly.
+
+Migrating to `GCKUICastButtonDelegate` means taking over presentation, which
+risks reintroducing that bug. Worth doing only with the sheet case explicitly
+re-tested. Harmless until the SDK removes the property.
+
+---
+
 ## Library List / Grid Toggle
 
 Requested by a user (Roy, Sep 2026): let Artists and Albums display as a linear list, like the Songs view, instead of the artwork grid.
